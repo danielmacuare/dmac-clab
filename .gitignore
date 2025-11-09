@@ -1,0 +1,15 @@
+# All
+*.env*
+*.kiro
+.vscode
+*authorized_keys*
+
+# Ansible
+ansible/
+
+# Containerlab
+*/images
+*/ceos
+*/srl
+*/.tls
+*/topology-data.json
