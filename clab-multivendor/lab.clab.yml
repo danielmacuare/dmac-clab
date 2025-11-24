@@ -15,7 +15,7 @@ topology:
       mgmt-ipv6: 3fff:172:20:100::11
     ceos:
       kind: arista_ceos
-      image: ceos:4.33.1F
+      image: ceosarm-lab-4.35
       mgmt-ipv4: 172.20.100.12
       mgmt-ipv6: 3fff:172:20:100::12
     vjrouter:
@@ -25,7 +25,7 @@ topology:
       mgmt-ipv6: 3fff:172:20:100::13
     vjswitch:
       kind: juniper_vjunosswitch
-      image: vrnetlab/juniper_vjunos-switch:24.4R1.9 
+      image: vrnetlab/juniper_vjunos-switch:24.4R1.9
       mgmt-ipv4: 172.20.100.14
       mgmt-ipv6: 3fff:172:20:100::14
   links:
