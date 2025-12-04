@@ -1,7 +1,6 @@
 # All
 *.env*
 *.kiro
-.vscode
 *authorized_keys*
 
 # Ansible
@@ -13,3 +12,36 @@ ansible/
 */srl
 */.tls
 */topology-data.json
+flash*
+*-inventory*
+.tls*
+images/
+
+
+# --- Certificates & Keys ---
+# Ignore generated keys if they aren't meant to be public templates
+*.pem
+*.key
+*.csr
+*.crt
+# SSH keys generated for the lab
+id_rsa
+id_rsa.pub
+
+# --- OS & IDE Specifics ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Secrets & Environment ---
+# Environment variables file (often used for passwords/keys in topology)
+.env
+.env.local
+
+# Temporary files often created during editing
+*.swp
+*.bak
+*.tmp
+*~
+*topology-data.json
