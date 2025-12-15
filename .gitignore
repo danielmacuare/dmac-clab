@@ -3,8 +3,9 @@
 *.kiro
 *authorized_keys*
 
-# Ansible
-ansible/
+# Ansible - ignore installed collections but keep config
+ansible/collections/
+ansible/.ansible/
 
 # Containerlab
 */images
@@ -45,3 +46,9 @@ Thumbs.db
 *.tmp
 *~
 *topology-data.json
+
+
+# --- AVD ---
+arista/avd/*
+arista/avd-cEOS-Lab/*
+juniper/*

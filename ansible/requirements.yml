@@ -1,0 +1,6 @@
+---
+collections:
+  - name: arista.avd
+    version: ">=5.7.0"
+  - name: arista.cvp
+    version: ">=3.12.0"

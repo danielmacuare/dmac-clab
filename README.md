@@ -43,16 +43,26 @@ clab/
 
 ## Lab Topologies
 
-### Multi-Vendor Lab
-### VXLAN-EVPN 3-Stage Clos
 
 ## Getting Started
+
 
 ### Prerequisites
 
 - [Containerlab](https://containerlab.dev/) installed
 - Docker or Podman runtime
 - Sufficient system resources for running multiple network containers
+- [Python UV](https://docs.astral.sh/uv/getting-started/installation/) installed
+
+
+### Install project dependencies
+
+```bash
+uv sync
+
+uv run ansible-galaxy collection install arista.avd -p ansible/collections --force
+
+```
 
 ### Containerlab Commands
 
