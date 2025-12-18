@@ -10,15 +10,19 @@
 ## Installation
 
 ```bash
-# Find version of the release you are targetting  here https://github.com/google/yamlfmt/releases
 
-VERSION="0.20.0"
-curl -L -o yamlfmt_${VERSION}_Linux_x86_64.tar.gz https://github.com/google/yamlfmt/releases/download/v${VERSION}/yamlfmt_${VERSION}_Linux_x86_64.tar.gz
+# 1. Dynamically fetch the correct URL for the latest release
+URL=$(curl -s https://api.github.com/repos/google/yamlfmt/releases/latest | grep "browser_download_url" | grep "Linux_x86_64.tar.gz" | cut -d '"' -f 4)
 
-tar -xzf yamlfmt_${VERSION}_Linux_x86_64.tar.gz
+# 2. Download
+curl -L -o yamlfmt.tar.gz $URL
+
+# 3. Install
+tar -xzf yamlfmt.tar.gz
 chmod +x yamlfmt
-
 sudo mv yamlfmt /usr/local/bin/
+
+# 4. Verify
 yamlfmt --version
 ```
 
@@ -27,6 +31,8 @@ yamlfmt --version
 The `yamlfmt` command can be configured through a yaml file called `.yamlfmt`. This file can live in your working directory, a path specified through a [CLI flag](./docs/command-usage.md#operation-flags), or in the standard global config path on your system (see docs for specifics).
 For in-depth configuration documentation see [Config](docs/config-file.md).
 
+**NOTE:** We will use the `-c` flag to pass the custom path of the config file.
+Example: `yamlfmt -conf configs/.yamlfmt.yaml .`
 
 ## Basic Usage
 

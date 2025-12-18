@@ -52,3 +52,7 @@ Thumbs.db
 arista/avd/*
 arista/avd-cEOS-Lab/*
 juniper/*
+
+.venv/
+
+/net-commander

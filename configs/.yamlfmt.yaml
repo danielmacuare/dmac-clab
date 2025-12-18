@@ -1,0 +1,20 @@
+# https://github.com/google/yamlfmt/blob/main/docs/config-file.md
+# 1. Define what to Include (Optional, defaults to all yaml/yml)
+include:
+    - "**/*.{yaml,yml}"
+# 2. Define what to Exclude (The Ignore List)
+exclude:
+    - "arista/avd/"
+    - ".venv/"
+    - "clab-multivendor/"
+formatter:
+    type: basic
+    include_document_start: false # Omit ---
+    line_ending: lf
+    max_line_length: 120
+    indent: 4
+    pad_line_comments: 1
+    retain_line_breaks: true
+    scan_folded_as_literal: false
+    gitignore_excludes: true
+    gitignore_path: .gitignore

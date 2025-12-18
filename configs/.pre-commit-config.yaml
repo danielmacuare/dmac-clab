@@ -1,0 +1,19 @@
+repos:
+    - repo: https://github.com/google/yamlfmt
+      rev: v0.20.0 # Should match your locally installed version
+      hooks:
+        - id: yamlfmt
+          description: This hook uses github.com/google/yamlfmt to format yaml files.
+          language: system # Relies on yamlfmt to be installed on my system. See docs/tools/yamlfmt.md
+          types: [yaml]
+          args: ["-conf", "configs/.yamlfmt.yaml"]
+          # pass_filenames: true # Only checks staged files by default
+
+    - repo: https://github.com/adrienverge/yamllint
+      rev: v1.37.1 # Should match your locally installed version
+      hooks:
+        - id: yamllint
+          description: This hook uses yamllint to lint yaml files for syntax and style issues.
+          language: system # Relies on yamllint to be installed on my system. See docs/tools/yamllint.md
+          types: [yaml]
+          args: ["-c", "configs/.yamllint.yaml"]

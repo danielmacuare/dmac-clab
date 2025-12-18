@@ -1,0 +1,39 @@
+# Rules can be found here: https://yamllint.readthedocs.io/en/stable/rules.html#
+extends: default
+ignore:
+    - arista/avd*
+    - ansible/collections*
+    - .venv/
+    - images/
+    - clab-multivendor/
+    - juniper/
+rules:
+    braces:
+        level: warning
+        max-spaces-inside: 1
+    brackets:
+        level: warning
+        max-spaces-inside: 1
+    colons:
+        level: warning
+    commas:
+        level: warning
+    # comments: enable
+    comments:
+        level: warning
+        require-starting-space: true # Enforces "# Word" (Bans "#Word")
+        min-spaces-from-content: 1 # Enforces 1 spaces before the # (Standard)
+    comments-indentation: disable
+    document-start: disable
+    empty-lines:
+        level: warning
+    hyphens:
+        level: warning
+    indentation: disable
+    line-length:
+        level: warning
+        allow-non-breakable-inline-mappings: true
+        max: 120
+        # Allow unlimited length for URLs and SSH keys
+        allow-non-breakable-words: true
+    truthy: disable

@@ -1,10 +1,21 @@
 [project]
 name = "dmac-clab"
 version = "0.0.1"
-description = "Python project to deploy tooling for Containerlab"
+description = "Python project to test network designs and automation workflows in Containerlab"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "ansible>=10.0.0,<11.0.0",  # ansible-core 2.17.x - compatible with arista.avd
+    "nornir>=3.5.0",
+    "nornir-jinja2>=0.2.0",
+    "nornir-napalm>=0.5.0",
+    "nornir-rich>=0.2.0",
+    "nornir-utils>=0.2.0",
     "pyavd[ansible]>=5.7.2",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+    "yamllint>=1.37.1",
 ]
