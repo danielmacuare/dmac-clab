@@ -9,8 +9,11 @@
 
 ## Installation
 
-```bash
+### Automatic Installation (Recommended)
+When using prek (our pre-commit alternative), yamlfmt is automatically installed and managed. No manual installation required.
 
+### Manual Installation
+```bash
 # 1. Dynamically fetch the correct URL for the latest release
 URL=$(curl -s https://api.github.com/repos/google/yamlfmt/releases/latest | grep "browser_download_url" | grep "Linux_x86_64.tar.gz" | cut -d '"' -f 4)
 

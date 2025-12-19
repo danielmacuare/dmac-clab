@@ -1,33 +1,33 @@
+# prek configuration - https://prek.j178.dev/
+# prek is a faster, Rust-based alternative to pre-commit that manages tool installation automatically
+minimum_prek_version: '0.2.0'
+
 repos:
     - repo: https://github.com/google/yamlfmt
-      rev: v0.20.0 # Should match your locally installed version
+      rev: v0.20.0
       hooks:
         - id: yamlfmt
           description: This hook uses github.com/google/yamlfmt to format yaml files.
-          language: system # Relies on yamlfmt to be installed on my system. See docs/tools/yamlfmt.md
           types: [yaml]
           args: ["-conf", "configs/.yamlfmt.yaml"]
           # pass_filenames: true # Only checks staged files by default
 
     - repo: https://github.com/adrienverge/yamllint
-      rev: v1.37.1 # Should match your locally installed version
+      rev: v1.37.1
       hooks:
         - id: yamllint
           description: This hook uses yamllint to lint yaml files for syntax and style issues.
-          language: system # Relies on yamllint to be installed on my system. See docs/tools/yamllint.md
           types: [yaml]
           args: ["-c", "configs/.yamllint.yaml"]
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.8.4 # Should match your locally installed version
+      rev: v0.8.4
       hooks:
         - id: ruff
           description: Run Ruff linter on Python files.
-          language: system # Relies on ruff to be installed on your system
           types: [python]
           args: ["--config", "configs/.ruff.toml"]
         - id: ruff-format
           description: Run Ruff formatter on Python files.
-          language: system # Relies on ruff to be installed on your system
           types: [python]
           args: ["--config", "configs/.ruff.toml"]

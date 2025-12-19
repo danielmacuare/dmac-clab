@@ -96,8 +96,8 @@ For detailed rule documentation, see: https://yamllint.readthedocs.io/en/stable/
 
 ## Integration with CI/CD
 
-### Pre-commit hook
-yamllint is integrated into our pre-commit configuration to automatically check YAML files before commits.
+### prek hook
+yamllint is integrated into our prek configuration (faster Rust-based alternative to pre-commit) to automatically check YAML files before commits. prek manages the yamllint installation automatically.
 
 ### Docker usage
 ```bash
