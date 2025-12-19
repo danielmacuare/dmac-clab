@@ -17,5 +17,25 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pre-commit>=4.5.1",
+    "ruff>=0.14.10",
     "yamllint>=1.37.1",
+    "dmac-clab"
 ]
+
+# When you try to install this project, don't look for a setup.py. Use the Hatchling engine to read my pyproject.toml and figure out what to do."
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+extend = "configs/.ruff.toml"
+
+[tool.uv.sources]
+dmac-clab = {path = ".", editable = true}
+
+[tool.hatch.build.targets.wheel]
+packages = ["py_netauto"]
+
+[lint.isort]
+# Tells Ruff that 'py_netauto' is your local project, not a library like Nornir
+known-first-party = ["py_netauto"]

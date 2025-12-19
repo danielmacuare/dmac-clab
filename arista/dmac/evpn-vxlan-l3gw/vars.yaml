@@ -1,0 +1,4 @@
+LEAVES:
+    UPSTREAM-INTF:
+        - L1: eth1
+        - L2: eth2

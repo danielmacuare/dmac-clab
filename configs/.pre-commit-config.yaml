@@ -17,3 +17,17 @@ repos:
           language: system # Relies on yamllint to be installed on my system. See docs/tools/yamllint.md
           types: [yaml]
           args: ["-c", "configs/.yamllint.yaml"]
+
+    - repo: https://github.com/astral-sh/ruff-pre-commit
+      rev: v0.8.4 # Should match your locally installed version
+      hooks:
+        - id: ruff
+          description: Run Ruff linter on Python files.
+          language: system # Relies on ruff to be installed on your system
+          types: [python]
+          args: ["--config", "configs/.ruff.toml"]
+        - id: ruff-format
+          description: Run Ruff formatter on Python files.
+          language: system # Relies on ruff to be installed on your system
+          types: [python]
+          args: ["--config", "configs/.ruff.toml"]
