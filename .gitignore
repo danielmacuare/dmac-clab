@@ -3,6 +3,7 @@
 *.kiro
 *authorized_keys*
 *__pycache__*
+*.log
 
 # Ansible - ignore installed collections but keep config
 ansible/collections/

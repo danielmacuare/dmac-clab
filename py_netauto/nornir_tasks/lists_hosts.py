@@ -1,10 +1,12 @@
 #!/usr/bin/env/python3
-from py_netauto.utils.nornir_helpers import get_nornir
+from nornir.core import Nornir
+
+from py_netauto.utils.nornir_helpers import initialize_nornir
 
 
-def main():
+def main() -> None:
     # Initialize Nornir using your custom Pathlib helper
-    nr = get_nornir()
+    nr: Nornir = initialize_nornir()
 
     print("\nListing all hosts in the inventory:")
     print("-" * 30)

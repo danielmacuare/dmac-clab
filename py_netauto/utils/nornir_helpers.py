@@ -1,17 +1,18 @@
 from pathlib import Path
 
 from nornir import InitNornir
+from nornir.core import Nornir
 
 # 1. Get the absolute path of this helper file
 # 2. Move up 3 levels to reach the project root
-_HELPER_PATH = Path(__file__).resolve()
-PROJECT_ROOT = _HELPER_PATH.parents[2]
+_HELPER_PATH: Path = Path(__file__).resolve()
+PROJECT_ROOT: Path = _HELPER_PATH.parents[2]
 
 # 3. Define the Nornir Config Path as a Constant
-NORNIR_CONFIG_PATH = PROJECT_ROOT / "configs" / "nornir" / "nornir.yaml"
+NORNIR_CONFIG_PATH: Path = PROJECT_ROOT / "configs" / "nornir" / "nornir.yaml"
 
 
-def get_nornir():
+def initialize_nornir() -> Nornir:
     """Initializes Nornir using the predefined NORNIR_CONFIG_PATH."""
     # Verify the constant path exists before attempting to load
     if not NORNIR_CONFIG_PATH.exists():

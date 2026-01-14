@@ -37,6 +37,9 @@ dmac-clab = {path = ".", editable = true}
 [tool.hatch.build.targets.wheel]
 packages = ["py_netauto"]
 
+[tool.pyright]
+reportMissingTypeStubs = false
+
 [lint.isort]
 # Tells Ruff that 'py_netauto' is your local project, not a library like Nornir
 known-first-party = ["py_netauto"]
