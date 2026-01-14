@@ -19,6 +19,15 @@ flash*
 *-inventory*
 .tls*
 images/
+*/schedule/*
+
+clab/crb/*
+clab/clab-multivendor/*
+
+# --- AVD ---
+clab/arista/avd/*
+clab/arista/avd-cEOS-Lab/*
+clab/juniper/*
 
 
 # --- Certificates & Keys ---
@@ -50,10 +59,6 @@ Thumbs.db
 *topology-data.json
 
 
-# --- AVD ---
-arista/avd/*
-arista/avd-cEOS-Lab/*
-juniper/*
 
 .venv/
 

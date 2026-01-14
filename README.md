@@ -92,9 +92,53 @@ Device management IPs follow predictable patterns:
 
 ## Configuration Management
 
+### Containerlab Configuration
+
 - Topology definitions use `.clab.yml` extension
 - Device configurations stored in vendor-specific subdirectories
 - Ansible inventory auto-generated for automation workflows
+
+### Python Package Configuration
+
+The `py_netauto` package uses environment-based configuration for flexibility across different environments.
+
+#### Quick Start
+
+1. **Copy the example configuration**:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Customize settings** (optional):
+   ```bash
+   # .env
+   NORNIR_CONFIG_FILE_PATH=configs/nornir/nornir.yaml
+   ```
+
+3. **Use the package**:
+   ```python
+   from py_netauto.utils.nornir_helpers import initialize_nornir
+   
+   # Configuration loads automatically
+   nr = initialize_nornir()
+   ```
+
+#### Configuration Options
+
+- **`NORNIR_CONFIG_FILE_PATH`**: Path to Nornir YAML configuration file
+  - Default: `configs/nornir/nornir.yaml`
+  - Supports relative (to project root) or absolute paths
+
+#### How It Works
+
+Configuration is loaded in this priority order:
+1. `.env` file (if present)
+2. System environment variables
+3. Default values
+
+The `.env` file is excluded from git to prevent committing sensitive settings.
+
+📖 **For detailed configuration documentation, see [docs/configuration.md](docs/configuration.md)**
 
 ## License
 
