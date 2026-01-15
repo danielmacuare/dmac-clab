@@ -10,14 +10,12 @@ PROJECT_ROOT: Path = Path(__file__).resolve().parents[1]
 
 class Settings(BaseSettings):
     # Default Values: Used if no vars and provided in the .env file - Relative form the PROJECT's ROOT
-    NORNIR_CONFIG_FILE_PATH: FilePath = Path("configs/nornir/nornir.yaml")
-    JINJA_TEMPLATES_FOLDER_PATH: DirectoryPath = Path("nornir/templates")
-    NORNIR_INVENTORY_HOSTS_PATH: FilePath = Path(
-        "clab/arista/dmac/evpn-vxlan-l3gw/clab-evl3gw-dmac/nornir-simple-inventory.yml",
-    )
-    NORNIR_INVENTORY_GROUPS_PATH: FilePath = Path(
-        "clab/arista/dmac/evpn-vxlan-l3gw/clab-evl3gw-dmac/groups.yml",
-    )
+    NORNIR_BASE_PATH: DirectoryPath = Path("configs/nornir")
+    NORNIR_CONFIG_FILE_PATH: FilePath = Path(NORNIR_BASE_PATH / "nornir.yaml")
+    JINJA_TEMPLATES_FOLDER_PATH: DirectoryPath = Path(NORNIR_BASE_PATH / "templates")
+    NORNIR_INVENTORY_HOSTS_PATH: FilePath = Path(NORNIR_BASE_PATH / "inventory/hosts.yml")
+    NORNIR_INVENTORY_GROUPS_PATH: FilePath = Path(NORNIR_BASE_PATH / "inventory/groups.yml")
+    GENERATED_CONFIGS_FOLDER_PATH: DirectoryPath = Path(NORNIR_BASE_PATH / "templates")
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(env_file=PROJECT_ROOT / ".env")
 
@@ -27,6 +25,7 @@ class Settings(BaseSettings):
         "JINJA_TEMPLATES_FOLDER_PATH",
         "NORNIR_INVENTORY_HOSTS_PATH",
         "NORNIR_INVENTORY_GROUPS_PATH",
+        "GENERATED_CONFIGS_FOLDER_PATH",
         mode="before",
     )
     @classmethod
@@ -44,6 +43,7 @@ JINJA_TEMPLATES_FOLDER_PATH: Path = config["JINJA_TEMPLATES_FOLDER_PATH"]
 NORNIR_CONFIG_FILE_PATH: Path = config["NORNIR_CONFIG_FILE_PATH"]
 NORNIR_INVENTORY_HOSTS_PATH: Path = config["NORNIR_INVENTORY_HOSTS_PATH"]
 NORNIR_INVENTORY_GROUPS_PATH: Path = config["NORNIR_INVENTORY_GROUPS_PATH"]
+GENERATED_CONFIGS_FOLDER_PATH: Path = config["GENERATED_CONFIGS_FOLDER_PATH"]
 
 
 __all__ = [
@@ -51,6 +51,7 @@ __all__ = [
     "NORNIR_CONFIG_FILE_PATH",
     "NORNIR_INVENTORY_GROUPS_PATH",
     "NORNIR_INVENTORY_HOSTS_PATH",
+    "GENERATED_CONFIGS_FOLDER_PATH",
     "PROJECT_ROOT",
 ]
 
@@ -62,5 +63,6 @@ if __name__ == "__main__":
     print(f"Config File:        {NORNIR_CONFIG_FILE_PATH}")
     print(f"Inventory Hosts:    {NORNIR_INVENTORY_HOSTS_PATH}")
     print(f"Inventory Groups:   {NORNIR_INVENTORY_GROUPS_PATH}")
-    print(f"Templates Dir:          {JINJA_TEMPLATES_FOLDER_PATH}")
+    print(f"Templates Dir:      {JINJA_TEMPLATES_FOLDER_PATH}")
+    print(f"Generated Configs Folder Dir: {GENERATED_CONFIGS_FOLDER_PATH}")
     print("-" * 30)
