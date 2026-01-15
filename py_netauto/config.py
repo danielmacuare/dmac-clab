@@ -13,10 +13,10 @@ class Settings(BaseSettings):
     NORNIR_CONFIG_FILE_PATH: FilePath = Path("configs/nornir/nornir.yaml")
     JINJA_TEMPLATES_FOLDER_PATH: DirectoryPath = Path("nornir/templates")
     NORNIR_INVENTORY_FILE_PATH: FilePath = Path(
-        "arista/dmac/evpn-vxlan-l3gw/clab-evl3gw-dmac/nornir-simple-inventory.yml",
+        "clab/arista/dmac/evpn-vxlan-l3gw/clab-evl3gw-dmac/nornir-simple-inventory.yml",
     )
 
-    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(env_file=".env")
+    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(env_file=PROJECT_ROOT / ".env")
 
     # Convert any string provided by the user to an absolute path before validation
     @field_validator(
