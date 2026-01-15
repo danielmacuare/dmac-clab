@@ -1,0 +1,10 @@
+
+leaf_group:
+    data:
+        role: leaf
+spine_group:
+    data:
+        role: spine
+host_group:
+    data:
+        role: host

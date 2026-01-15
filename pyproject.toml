@@ -22,6 +22,7 @@ dev = [
     "dmac-clab",
     "basedpyright>=1.36.1",
     "prek>=0.2.22",
+    "ipython>=9.9.0",
 ]
 
 # When you try to install this project, don't look for a setup.py. Use the Hatchling engine to read my pyproject.toml and figure out what to do."

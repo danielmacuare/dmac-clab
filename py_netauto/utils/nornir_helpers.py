@@ -1,27 +1,38 @@
-from pathlib import Path
-
 from nornir import InitNornir
 from nornir.core import Nornir
 
-# 1. Get the absolute path of this helper file
-# 2. Move up 3 levels to reach the project root
-_HELPER_PATH: Path = Path(__file__).resolve()
-PROJECT_ROOT: Path = _HELPER_PATH.parents[2]
+from py_netauto.config import NORNIR_CONFIG_FILE_PATH, NORNIR_INVENTORY_GROUPS_PATH, NORNIR_INVENTORY_HOSTS_PATH
 
-# 3. Define the Nornir Config Path as a Constant
-NORNIR_CONFIG_PATH: Path = PROJECT_ROOT / "configs" / "nornir" / "nornir.yaml"
+# Re-export constants for backward compatibility
+__all__ = ["NORNIR_CONFIG_FILE_PATH", "initialize_nornir"]
 
 
 def initialize_nornir() -> Nornir:
-    """Initializes Nornir using the predefined NORNIR_CONFIG_PATH."""
-    # Verify the constant path exists before attempting to load
-    if not NORNIR_CONFIG_PATH.exists():
-        error_msg = (
-            f"\n[!] Nornir config not found at: {NORNIR_CONFIG_PATH}\nCheck if the file exists and is named correctly."
-        )
-        raise FileNotFoundError(error_msg)
+    """
+    Initializes Nornir using the NORNIR_CONFIG_FILE_PATH from configuration.
 
-    print(f"Loading Nornir config from: {NORNIR_CONFIG_PATH}")
+    The configuration path is loaded from environment variables via the
+    py_netauto.config module. Validation of the path is handled during
+    module initialization in py_netauto.config.
+
+    Returns:
+        Nornir: Initialized Nornir instance
+
+    Raises:
+        FileNotFoundError: If the configuration file does not exist
+            (raised by py_netauto.config during import)
+
+    """
+    print(f"[DEBUG] - Loading Nornir Config from: {NORNIR_CONFIG_FILE_PATH}")
+    print(f"[DEBUG] - Loading Nornir Inventory (Hosts) from: {NORNIR_INVENTORY_HOSTS_PATH}")
+    print(f"[DEBUG] - Loading Nornir Inventory (Groups) from: {NORNIR_INVENTORY_GROUPS_PATH}")
 
     # InitNornir expects the config_file as a string
-    return InitNornir(config_file=str(NORNIR_CONFIG_PATH))
+    nr: Nornir = InitNornir(
+        config_file=str(NORNIR_CONFIG_FILE_PATH),
+        inventory={
+            "plugin": "SimpleInventory",
+            "options": {"host_file": str(NORNIR_INVENTORY_HOSTS_PATH), "group_file": str(NORNIR_INVENTORY_GROUPS_PATH)},
+        },
+    )
+    return nr
