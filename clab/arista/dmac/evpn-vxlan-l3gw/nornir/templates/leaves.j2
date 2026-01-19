@@ -94,7 +94,7 @@ router bgp {{ host.asns[host.name] }}
    redistribute connected route-map RM-UNDERLAY-ADVERTISE
 
    neighbor IPV4-SPINES peer group
-   neighbor IPV4-SPINES password 0 admin
+   neighbor IPV4-SPINES password 0 {{ host.secret_bgp_password }}
    neighbor IPV4-SPINES send-community
    neighbor IPV4-SPINES maximum-routes {{ host.bgp_maximum_routes }}
    neighbor IPV4-SPINES remote-as {{ host.asns.spines }}
