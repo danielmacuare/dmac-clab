@@ -34,10 +34,21 @@ class Settings(BaseSettings):
         mode="before",
     )
     @classmethod
-    def make_paths_absolute(cls, v: str | Path | None) -> Path | None:
-        if v is None:
+    def make_paths_absolute(cls, env_var: str | Path | None) -> Path | None:
+        """
+        Convert a path to an absolute path relative to the project root.
+
+        Args:
+            env_var: A string path, Path object, or None to convert.
+
+        Returns:
+            An absolute Path object relative to PROJECT_ROOT, or None if input is None.
+            If the input path is already absolute, it is returned as-is.
+
+        """
+        if env_var is None:
             return None
-        path = Path(v)
+        path = Path(env_var)
         if path.is_absolute():
             return path
 

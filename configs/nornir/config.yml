@@ -1,0 +1,12 @@
+inventory:
+    plugin: SimpleInventory
+    options:
+        # Use the nornir simple inventory from the containerlab deployment
+        host_file: "clab/arista/dmac/evpn-vxlan-l3gw/nornir/inventory/hosts.yml"
+        group_file: "clab/arista/dmac/evpn-vxlan-l3gw/nornir/inventory/groups.yml"
+        defaults_file: "clab/arista/dmac/evpn-vxlan-l3gw/nornir/inventory/defaults.yml"
+
+runner:
+    plugin: threaded
+    options:
+        num_workers: 20
