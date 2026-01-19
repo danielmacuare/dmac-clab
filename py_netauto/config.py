@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar
 
-from pydantic import DirectoryPath, FilePath, field_validator
+from pydantic import DirectoryPath, FilePath, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Absolute path to the repository's root directory
@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     NORNIR_INVENTORY_GROUPS_PATH: FilePath = Path(NORNIR_BASE_PATH / "inventory/groups.yml")
     NORNIR_INVENTORY_DEFAULTS_PATH: FilePath = Path(NORNIR_BASE_PATH / "inventory/defaults.yml")
     GENERATED_CONFIGS_FOLDER_PATH: DirectoryPath = Path(NORNIR_BASE_PATH / "templates")
+    # Secrets
+    SECRET_BGP_PASSWORD: SecretStr = SecretStr("admin")
+    SECRET_SSH_PASSWORD: SecretStr = SecretStr("admin")
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=PROJECT_ROOT / ".env",
@@ -63,6 +66,9 @@ NORNIR_INVENTORY_HOSTS_PATH: Path = config["NORNIR_INVENTORY_HOSTS_PATH"]
 NORNIR_INVENTORY_GROUPS_PATH: Path = config["NORNIR_INVENTORY_GROUPS_PATH"]
 NORNIR_INVENTORY_DEFAULTS_PATH: Path = config["NORNIR_INVENTORY_DEFAULTS_PATH"]
 GENERATED_CONFIGS_FOLDER_PATH: Path = config["GENERATED_CONFIGS_FOLDER_PATH"]
+SECRET_BGP_PASSWORD: SecretStr = config["SECRET_BGP_PASSWORD"]
+SECRET_SSH_PASSWORD: SecretStr = config["SECRET_SSH_PASSWORD"]
+SECRET_SSH_PASSWORD: SecretStr = config["SECRET_SSH_PASSWORD"]
 
 
 __all__ = [
@@ -73,6 +79,7 @@ __all__ = [
     "NORNIR_INVENTORY_GROUPS_PATH",
     "NORNIR_INVENTORY_HOSTS_PATH",
     "PROJECT_ROOT",
+    "SECRET_SSH_PASSWORD",
 ]
 
 if __name__ == "__main__":

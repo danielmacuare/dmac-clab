@@ -6,10 +6,43 @@ from py_netauto.config import (
     NORNIR_INVENTORY_DEFAULTS_PATH,
     NORNIR_INVENTORY_GROUPS_PATH,
     NORNIR_INVENTORY_HOSTS_PATH,
+    SECRET_BGP_PASSWORD,
+    SECRET_SSH_PASSWORD,
 )
 
 # Re-export constants for backward compatibility
 __all__ = ["NORNIR_CONFIG_FILE_PATH", "initialize_nornir"]
+
+
+def _inject_secrets_into_inventory(nr: Nornir) -> None:
+    """
+    Inject secrets and credentials into the Nornir inventory.
+
+    This function injects environment-based secrets into the Nornir inventory
+    defaults and sets SSH credentials for hosts that don't have them explicitly
+    configured.
+
+    Args:
+        nr: The Nornir instance to inject secrets into.
+
+    """
+    print("[DEBUG] - Injecting secrets into Nornir inventory")
+
+    # Inject the secrets into the global defaults for template access
+    nr.inventory.defaults.data["secret_bgp_password"] = SECRET_BGP_PASSWORD.get_secret_value()
+    nr.inventory.defaults.data["secret_ssh_password"] = SECRET_SSH_PASSWORD.get_secret_value()
+    print("[DEBUG] - Injected BGP and SSH passwords into inventory defaults")
+
+    # Set SSH credentials for all hosts that don't have them explicitly set
+    hosts_updated = 0
+    for host in nr.inventory.hosts.values():
+        if not host.username:
+            host.username = "admin"
+        if not host.password:
+            host.password = SECRET_SSH_PASSWORD.get_secret_value()
+            hosts_updated += 1
+
+    print(f"[DEBUG] - Set SSH credentials for {hosts_updated} hosts without explicit passwords")
 
 
 def initialize_nornir() -> Nornir:
@@ -31,7 +64,9 @@ def initialize_nornir() -> Nornir:
     # If Config file is provided
     if NORNIR_CONFIG_FILE_PATH is not None:
         print(f"[DEBUG] - Loading Nornir Config from: {NORNIR_CONFIG_FILE_PATH}")
-        nr: Nornir = InitNornir(config_file=str(NORNIR_CONFIG_FILE_PATH))
+        nr: Nornir = InitNornir(
+            config_file=str(NORNIR_CONFIG_FILE_PATH),
+        )
 
     else:
         # If a config file is not provided, then provide hosts, groups and default paths
@@ -49,4 +84,12 @@ def initialize_nornir() -> Nornir:
                 },
             },
         )
+    # from objexplore import explore
+    # import ipdb
+
+    # ipdb.set_trace()
+
+    # Inject secrets and credentials into the inventory
+    _inject_secrets_into_inventory(nr)
+
     return nr
