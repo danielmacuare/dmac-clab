@@ -2,6 +2,7 @@ from nornir import InitNornir
 from nornir.core import Nornir
 
 from py_netauto.config import (
+    GENERATED_CONFIGS_FOLDER_PATH,
     NORNIR_CONFIG_FILE_PATH,
     NORNIR_INVENTORY_DEFAULTS_PATH,
     NORNIR_INVENTORY_GROUPS_PATH,
@@ -11,7 +12,7 @@ from py_netauto.config import (
 )
 
 # Re-export constants for backward compatibility
-__all__ = ["NORNIR_CONFIG_FILE_PATH", "initialize_nornir"]
+__all__ = ["GENERATED_CONFIGS_FOLDER_PATH", "NORNIR_CONFIG_FILE_PATH", "initialize_nornir"]
 
 
 def _inject_secrets_into_inventory(nr: Nornir) -> None:
@@ -96,5 +97,7 @@ def initialize_nornir() -> Nornir:
     _inject_secrets_into_inventory(nr)
 
     # Filtering
-    nr = nr.filter(role="leaf")
+    # nr = nr.filter(name="l5")
+    # nr = nr.filter(role="spine")
+    print(f"Hosts after filter: {nr.inventory.hosts.keys()}")
     return nr
