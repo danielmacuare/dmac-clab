@@ -98,7 +98,8 @@ route-map RM-UNDERLAY-ADVERTISE permit 10
    match ip address prefix-list PL-LOOPBACKS 
 
 router bgp {{ host.asns.spines }}
-   router-id {{ host.lo0_ips[host.name] }}
+{# split Gets rid of /32 from the lo0_ips  #}
+   router-id {{ host.lo0_ips[host.name].split('/')[0] }}
    ! You will not only exchange IPv4 routes but also EVPN routes
    no bgp default ipv4-unicast
    ! ECMP load-balancing across 4 paths if available.
@@ -110,25 +111,25 @@ router bgp {{ host.asns.spines }}
    neighbor IPV4-LEAVES send-community
    neighbor IPV4-LEAVES maximum-routes {{ host.bgp_maximum_routes }}
 
-   neighbor {{ host.p2p_ips['l1']['to_s1'] }} description L1_ETH{{ host.name[1:] }}
-   neighbor {{ host.p2p_ips['l1']['to_s1'] }} peer group IPV4-LEAVES
-   neighbor {{ host.p2p_ips['l1']['to_s1'] }} remote-as {{ host.asns['l1'] }}
+   neighbor {{ host.p2p_ips['l1']['to_' + host.name].split("/")[0] }} description L1_ETH{{ host.name[1:] }}
+   neighbor {{ host.p2p_ips['l1']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
+   neighbor {{ host.p2p_ips['l1']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns['l1'] }}
    
-   neighbor {{ host.p2p_ips['l2']['to_s1'] }} description L2_ETH{{ host.name[1:] }}
-   neighbor {{ host.p2p_ips['l2']['to_s1'] }} peer group IPV4-LEAVES
-   neighbor {{ host.p2p_ips['l2']['to_s1'] }} remote-as {{ host.asns['l2'] }}
+   neighbor {{ host.p2p_ips['l2']['to_' + host.name].split("/")[0] }} description L2_ETH{{ host.name[1:] }}
+   neighbor {{ host.p2p_ips['l2']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
+   neighbor {{ host.p2p_ips['l2']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns['l2'] }}
 
-   neighbor {{ host.p2p_ips['l3']['to_s1'] }} description L3_ETH{{ host.name[1:] }}
-   neighbor {{ host.p2p_ips['l3']['to_s1'] }} peer group IPV4-LEAVES
-   neighbor {{ host.p2p_ips['l3']['to_s1'] }} remote-as {{ host.asns['l3'] }}
+   neighbor {{ host.p2p_ips['l3']['to_' + host.name].split("/")[0] }} description L3_ETH{{ host.name[1:] }}
+   neighbor {{ host.p2p_ips['l3']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
+   neighbor {{ host.p2p_ips['l3']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns['l3'] }}
 
-   neighbor {{ host.p2p_ips['l4']['to_s1'] }} description L4_ETH{{ host.name[1:] }}
-   neighbor {{ host.p2p_ips['l4']['to_s1'] }} peer group IPV4-LEAVES
-   neighbor {{ host.p2p_ips['l4']['to_s1'] }} remote-as {{ host.asns['l4'] }}
+   neighbor {{ host.p2p_ips['l4']['to_' + host.name].split("/")[0] }} description L4_ETH{{ host.name[1:] }}
+   neighbor {{ host.p2p_ips['l4']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
+   neighbor {{ host.p2p_ips['l4']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns['l4'] }}
 
-   neighbor {{ host.p2p_ips['l5']['to_s1'] }} description L5_ETH{{ host.name[1:] }}
-   neighbor {{ host.p2p_ips['l5']['to_s1'] }} peer group IPV4-LEAVES
-   neighbor {{ host.p2p_ips['l5']['to_s1'] }} remote-as {{ host.asns['l5'] }}
+   neighbor {{ host.p2p_ips['l5']['to_' + host.name].split("/")[0] }} description L5_ETH{{ host.name[1:] }}
+   neighbor {{ host.p2p_ips['l5']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
+   neighbor {{ host.p2p_ips['l5']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns['l5'] }}
 
 address-family ipv4
       neighbor IPV4-LEAVES activate

@@ -86,7 +86,8 @@ route-map RM-UNDERLAY-ADVERTISE permit 10
    match ip address prefix-list PL-LOOPBACKS 
 
 router bgp {{ host.asns[host.name] }}
-   router-id {{ host.lo0_ips[host.name] }}
+{# split Gets rid of /32 from the lo0_ips  #}
+   router-id {{ host.lo0_ips[host.name].split('/')[0] }}
    ! You will not only exchange IPv4 routes but also EVPN routes
    no bgp default ipv4-unicast
    ! ECMP load-balancing across 4 paths if available.
@@ -99,4 +100,17 @@ router bgp {{ host.asns[host.name] }}
    neighbor IPV4-SPINES maximum-routes {{ host.bgp_maximum_routes }}
    neighbor IPV4-SPINES remote-as {{ host.asns.spines }}
    neighbor IPV4-SPINES route-map RM-UNDERLAY-ADVERTISE out
-   
+
+   ! S1 BGP Neighbor
+   neighbor {{ host.p2p_ips['s1']['to_' + host.name].split("/")[0] }} description S1_ETH{{ host.name[1:] }}
+   neighbor {{ host.p2p_ips['s1']['to_' + host.name].split("/")[0] }} peer group IPV4-SPINES
+   neighbor {{ host.p2p_ips['s1']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns.spines }}
+
+   ! S2 BGP Neighbor  
+   neighbor {{ host.p2p_ips['s2']['to_' + host.name].split("/")[0] }} description S2_ETH{{ host.name[1:] }}
+   neighbor {{ host.p2p_ips['s2']['to_' + host.name].split("/")[0] }} peer group IPV4-SPINES
+   neighbor {{ host.p2p_ips['s2']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns.spines }}
+
+   ! IPv4 Address Family
+   address-family ipv4
+      neighbor IPV4-SPINES activate
