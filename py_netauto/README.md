@@ -3,6 +3,8 @@
 A Python package for network automation utilities, designed for use with Containerlab network topologies and multi-vendor network device management.
 
 ## TO-DO
+- Configure Leaf5 with scrapli. (Done)
+- Use nornir-scrapli-cfg to push config (idempotent config replace)
 - Replace basedpyright by ty
 - Add logging
 
