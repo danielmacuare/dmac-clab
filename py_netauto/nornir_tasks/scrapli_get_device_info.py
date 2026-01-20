@@ -16,11 +16,11 @@ def get_devices_info(task: Task) -> None:
 
 def main():
     nr: Nornir = initialize_nornir()
-    lldp_info: AggregatedResult = nr.run(task=get_devices_info, name="Task - Getting info from network devices")
+    response: AggregatedResult = nr.run(task=get_devices_info, name="Task - Getting info from network devices")
     # If you want to get a print_result:
-    print_result(lldp_info)
+    print_result(response)
     # If you want to get strucutred data back use the following:
-    # print_structured_result(lldp_info)
+    # print_structured_result(response)
 
 
 if __name__ == "__main__":
