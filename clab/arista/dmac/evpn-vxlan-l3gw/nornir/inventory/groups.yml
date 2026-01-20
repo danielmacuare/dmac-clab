@@ -9,7 +9,14 @@ host_group:
     data:
         role: host
 fabric:
+    connection_options:
+        scrapli:
+            platform: arista_eos
+            port: 22
+            extras:
+                auth_strict_key: False
     data:
+        platform: arista_eos # Used by scrapli (fallback)
         ecmp_maximum_paths: 4
         bgp_maximum_routes: 12000
         asns:

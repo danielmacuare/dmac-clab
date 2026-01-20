@@ -41,8 +41,11 @@ def _inject_secrets_into_inventory(nr: Nornir) -> None:
         if not host.password:
             host.password = SECRET_SSH_PASSWORD.get_secret_value()
             hosts_updated += 1
+            print(
+                f'[DEBUG] - Setting Defualt SSH credentials for "{host.name}" as it doesn\'t have an explicit password'
+            )
 
-    print(f"[DEBUG] - Set SSH credentials for {hosts_updated} hosts without explicit passwords")
+    print(f"[DEBUG] - Set Default SSH credentials for {hosts_updated} hosts without explicit passwords")
 
 
 def initialize_nornir() -> Nornir:
@@ -92,4 +95,6 @@ def initialize_nornir() -> Nornir:
     # Inject secrets and credentials into the inventory
     _inject_secrets_into_inventory(nr)
 
+    # Filtering
+    nr = nr.filter(role="leaf")
     return nr

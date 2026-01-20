@@ -1,7 +1,7 @@
 # from nornir_utils.plugins.functions import print_result
 from nornir.core import Nornir
 from nornir.core.filter import F
-from nornir.core.task import AggregatedResult, Task
+from nornir.core.task import AggregatedResult, MultiResult, Task
 from nornir_jinja2.plugins.tasks import template_file
 from nornir_rich.functions import print_result as rprint_result
 from nornir_utils.plugins.tasks.files import write_file
@@ -25,7 +25,7 @@ def render_configs(task: Task) -> None:
         print(f"Skipping Host {task.host.name}: No template mapped for role '{device_role}")
         return
 
-    rendered_config = task.run(
+    rendered_config: MultiResult = task.run(
         task=template_file,
         name="Rendering Device config",
         template=device_template,
@@ -35,6 +35,7 @@ def render_configs(task: Task) -> None:
     print(f"[DEBUG] - Writing config at {GENERATED_CONFIGS_FOLDER_PATH}/{task.host.name}.cfg")
     task.run(
         task=write_file,
+        name="Writing configs to disk",
         filename=f"{GENERATED_CONFIGS_FOLDER_PATH}/{task.host.name}.cfg",
         content=rendered_config[0].result,
     )
