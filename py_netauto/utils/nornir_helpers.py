@@ -1,3 +1,5 @@
+import logging
+
 from nornir import InitNornir
 from nornir.core import Nornir
 
@@ -31,22 +33,8 @@ def _inject_secrets_into_inventory(nr: Nornir) -> None:
 
     # Inject the secrets into the global defaults for template access
     nr.inventory.defaults.data["secret_bgp_password"] = SECRET_BGP_PASSWORD.get_secret_value()
-    nr.inventory.defaults.data["secret_ssh_password"] = SECRET_SSH_PASSWORD.get_secret_value()
+    nr.inventory.defaults.data["password"] = SECRET_SSH_PASSWORD.get_secret_value()
     print("[DEBUG] - Injected BGP and SSH passwords into inventory defaults")
-
-    # Set SSH credentials for all hosts that don't have them explicitly set
-    hosts_updated = 0
-    for host in nr.inventory.hosts.values():
-        if not host.username:
-            host.username = "admin"
-        if not host.password:
-            host.password = SECRET_SSH_PASSWORD.get_secret_value()
-            hosts_updated += 1
-            print(
-                f'[DEBUG] - Setting Defualt SSH credentials for "{host.name}" as it doesn\'t have an explicit password'
-            )
-
-    print(f"[DEBUG] - Set Default SSH credentials for {hosts_updated} hosts without explicit passwords")
 
 
 def initialize_nornir() -> Nornir:
@@ -78,6 +66,9 @@ def initialize_nornir() -> Nornir:
         print(f"[DEBUG] - Loading Nornir Inventory (Hosts) from: {NORNIR_INVENTORY_HOSTS_PATH}")
         print(f"[DEBUG] - Loading Nornir Inventory (Groups) from: {NORNIR_INVENTORY_GROUPS_PATH}")
         print(f"[DEBUG] - Loading Nornir Inventory (Defaults) from: {NORNIR_INVENTORY_DEFAULTS_PATH}")
+
+        logging.basicConfig(filename="scrapli.log", level=logging.DEBUG)
+
         nr: Nornir = InitNornir(
             inventory={
                 "plugin": "SimpleInventory",
@@ -87,6 +78,11 @@ def initialize_nornir() -> Nornir:
                     "defaults_file": str(NORNIR_INVENTORY_DEFAULTS_PATH),
                 },
             },
+            logging={
+                "enabled": True,
+                "level": "DEBUG",
+                "log_file": "nornir.log",
+            },  # Logging is a top-level key
         )
     # from objexplore import explore
     # import ipdb
@@ -97,7 +93,6 @@ def initialize_nornir() -> Nornir:
     _inject_secrets_into_inventory(nr)
 
     # Filtering
-    # nr = nr.filter(name="l5")
-    # nr = nr.filter(role="spine")
-    print(f"Hosts after filter: {nr.inventory.hosts.keys()}")
+    # nr = nr.filter(name="s1")
+    nr = nr.filter(role="leaf")
     return nr
