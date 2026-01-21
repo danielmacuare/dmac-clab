@@ -3,10 +3,17 @@
 A Python package for network automation utilities, designed for use with Containerlab network topologies and multi-vendor network device management.
 
 ## TO-DO
+-Fix scrpali_conifg_device commit workflow
+    - I need to add an option to only diff and another one to push config.
+    - When diffing the config, the config session needs to be closed
+    - Check what error do you get back when the device can't allow any more config sessions to be created.
+        - When you see that error, then create a workflow to delete all the config sessions.
+- password from the env file is not working. Test this by removing the password from the defaults.yml file and only using the password comning from the env file
+- Test that passwords are working from the env var and remove them from the groups or default vars
 - Configure Leaf5 with scrapli. (Done)
 - Use nornir-scrapli-cfg to push config (idempotent config replace)
+    - Contuinue tshooting why pushing to leafe 5 won't work. I need to update second_auth. Before commiting (replace) I need to make sure I'm updating the template to reflect what containerlab pushes to the devices.
 - Replace basedpyright by ty
-- Add logging
 
 ## Overview
 
