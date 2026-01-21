@@ -84,11 +84,6 @@ def initialize_nornir() -> Nornir:
                 "log_file": "nornir.log",
             },  # Logging is a top-level key
         )
-    # from objexplore import explore
-    # import ipdb
-
-    # ipdb.set_trace()
-
     # Inject secrets and credentials into the inventory
     _inject_secrets_into_inventory(nr)
 
