@@ -1,4 +1,4 @@
-
+---
 leaf_group:
     data:
         role: leaf
@@ -10,16 +10,18 @@ host_group:
         role: host
 fabric:
     platform: arista_eos
-    username: admin
     connection_options:
         scrapli:
-            #platform: arista_eos
+            platform: arista_eos
             port: 22
             extras:
                 auth_strict_key: False
+                timeout_ops: 30
+                #default_desired_privilege_level: "privilege_exec"
+                #auth_secondary: admin  # Enable password for privilege escalation
     data:
         platform: arista_eos # Used by scrapli (fallback)
-        ecmp_maximum_paths: 32
+        ecmp_maximum_paths: 64
         bgp_maximum_routes: 12000
         asns:
             spines: 64600
