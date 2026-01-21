@@ -13,7 +13,10 @@ A Python package for network automation utilities, designed for use with Contain
 - Configure Leaf5 with scrapli. (Done)
 - Use nornir-scrapli-cfg to push config (idempotent config replace)
     - Contuinue tshooting why pushing to leafe 5 won't work. I need to update second_auth. Before commiting (replace) I need to make sure I'm updating the template to reflect what containerlab pushes to the devices.
-- Replace basedpyright by ty
+- Replace basedpyright with ty
+- Create a script to thsoot inventory, to understand where all the vars and values are inherited from (Host, groud, defaults, etc) for each device. Also include the variables injected from the env file. 
+- Create a script to thsoot the variables received by each device on each task. 
+    - How Nornir merges all the vars from hosts, groups and defaults and pass them to the task? 
 
 ## Overview
 
