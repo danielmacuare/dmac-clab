@@ -12,6 +12,9 @@ service routing protocols model multi-agent
 ! Split 40G interface into 4 x 10G
 transceiver qsfp default-mode 4x10G
 
+! USERS
+username {{ host.username }} privilege 15 role network-admin secret 0 {{ host.password }}
+
 ! VRF AND SERVICES
 vrf instance {{ host.mgmt_vrf_name }}
 
@@ -38,6 +41,11 @@ ip routing
 no ip routing vrf {{ host.mgmt_vrf_name }}
 ip route vrf MGMT 0.0.0.0/0 172.100.100.1
 ipv6 route vrf MGMT ::/0 2001:172:100:100::1
+
+! MGMT INTERFACE
+interface Management0
+   vrf {{ host.mgmt_vrf_name }}
+   ip address {{ host.hostname }}/24
 
 ! LOOPBACK INTERFACES
 interface Loopback0
