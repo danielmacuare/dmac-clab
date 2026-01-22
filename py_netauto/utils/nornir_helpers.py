@@ -33,7 +33,7 @@ def _inject_secrets_into_inventory(nr: Nornir) -> None:
 
     # Inject the secrets into the global defaults for template access
     nr.inventory.defaults.data["secret_bgp_password"] = SECRET_BGP_PASSWORD.get_secret_value()
-    nr.inventory.defaults.data["password"] = SECRET_SSH_PASSWORD.get_secret_value()
+    nr.inventory.defaults.password = SECRET_SSH_PASSWORD.get_secret_value()
     print("[DEBUG] - Injected BGP and SSH passwords into inventory defaults")
 
 
@@ -88,6 +88,6 @@ def initialize_nornir() -> Nornir:
     _inject_secrets_into_inventory(nr)
 
     # Filtering
-    # nr = nr.filter(name="s1")
-    nr = nr.filter(role="leaf")
+    # nr = nr.filter(name="l3")
+    # nr = nr.filter(role="leaf")
     return nr
