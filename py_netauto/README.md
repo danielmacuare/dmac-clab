@@ -8,15 +8,18 @@ A Python package for network automation utilities, designed for use with Contain
     - When diffing the config, the config session needs to be closed
     - Check what error do you get back when the device can't allow any more config sessions to be created.
         - When you see that error, then create a workflow to delete all the config sessions.
-- password from the env file is not working. Test this by removing the password from the defaults.yml file and only using the password comning from the env file
-- Test that passwords are working from the env var and remove them from the groups or default vars
-- Configure Leaf5 with scrapli. (Done)
-- Use nornir-scrapli-cfg to push config (idempotent config replace)
-    - Contuinue tshooting why pushing to leafe 5 won't work. I need to update second_auth. Before commiting (replace) I need to make sure I'm updating the template to reflect what containerlab pushes to the devices.
 - Replace basedpyright with ty
 - Create a script to thsoot inventory, to understand where all the vars and values are inherited from (Host, groud, defaults, etc) for each device. Also include the variables injected from the env file. 
 - Create a script to thsoot the variables received by each device on each task. 
     - How Nornir merges all the vars from hosts, groups and defaults and pass them to the task? 
+
+
+## Done
+- Configure Leaf5 with scrapli. (Done)
+- Test that passwords are working from the env var and remove them from the groups or default vars (Done)
+- password from the env file is not working. Test this by removing the password from the defaults.yml file and only using the password comning from the env file
+- Use nornir-scrapli-cfg to push config (idempotent config replace)
+    - Contuinue tshooting why pushing to leafe 5 won't work. I need to update second_auth. Before commiting (replace) I need to make sure I'm updating the template to reflect what containerlab pushes to the devices.
 
 ## Overview
 
