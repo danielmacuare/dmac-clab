@@ -34,7 +34,10 @@ def _inject_secrets_into_inventory(nr: Nornir) -> None:
     # Inject the secrets into the global defaults for template access
     nr.inventory.defaults.data["secret_bgp_password"] = SECRET_BGP_PASSWORD.get_secret_value()
     nr.inventory.defaults.password = SECRET_SSH_PASSWORD.get_secret_value()
-    print("[DEBUG] - Injected BGP and SSH passwords into inventory defaults")
+    print(
+        "[DEBUG] - env var: SECRET_BGP_PASSWORD has been injected --> nr.inventory.defaults.data['secret_bgp_password']",
+    )
+    print("[DEBUG] - env var: SECRET_SSH_PASSWORD has been injected --> nr.inventory.defaults.password")
 
 
 def initialize_nornir() -> Nornir:
