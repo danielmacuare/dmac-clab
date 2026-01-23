@@ -1,4 +1,3 @@
-# py_netauto
 
 A Python package for network automation utilities, designed for use with Containerlab network topologies and multi-vendor network device management.
 
@@ -9,12 +8,12 @@ A Python package for network automation utilities, designed for use with Contain
     - Check what error do you get back when the device can't allow any more config sessions to be created.
         - When you see that error, then create a workflow to delete all the config sessions.
 - Replace basedpyright with ty
-- Create a script to thsoot inventory, to understand where all the vars and values are inherited from (Host, groud, defaults, etc) for each device. Also include the variables injected from the env file. 
 - Create a script to thsoot the variables received by each device on each task. 
     - How Nornir merges all the vars from hosts, groups and defaults and pass them to the task? 
 
 
 ## Done
+- Create a script to thsoot inventory, to understand where all the vars and values are inherited from (Host, groud, defaults, etc) for each device. Also include the variables injected from the env file. 
 - Configure Leaf5 with scrapli. (Done)
 - Test that passwords are working from the env var and remove them from the groups or default vars (Done)
 - password from the env file is not working. Test this by removing the password from the defaults.yml file and only using the password comning from the env file
