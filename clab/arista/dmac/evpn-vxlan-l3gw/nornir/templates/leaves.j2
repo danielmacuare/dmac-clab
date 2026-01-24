@@ -46,6 +46,7 @@ ipv6 route vrf MGMT ::/0 2001:172:100:100::1
 interface Management0
    vrf {{ host.mgmt_vrf_name }}
    ip address {{ host.hostname }}/24
+   ipv6 address {{ host.ipv6_address }}/80
 
 ! LOOPBACK INTERFACES
 interface Loopback0

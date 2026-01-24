@@ -19,41 +19,49 @@ topology:
         s1:
             kind: arista_ceos
             mgmt-ipv4: 172.100.100.121
+            mgmt-ipv6: 2001:172:100:100::121
             aliases:
                 - s1
         s2:
             kind: arista_ceos
             mgmt-ipv4: 172.100.100.122
+            mgmt-ipv6: 2001:172:100:100::122
             aliases:
                 - s2
         l1:
             kind: arista_ceos
             mgmt-ipv4: 172.100.100.61
+            mgmt-ipv6: 2001:172:100:100::61
             aliases:
                 - l1
         l2:
             kind: arista_ceos
             mgmt-ipv4: 172.100.100.62
+            mgmt-ipv6: 2001:172:100:100::62
             aliases:
                 - l2
         l3:
             kind: arista_ceos
             mgmt-ipv4: 172.100.100.63
+            mgmt-ipv6: 2001:172:100:100::63
             aliases:
                 - l3
         l4:
             kind: arista_ceos
             mgmt-ipv4: 172.100.100.64
+            mgmt-ipv6: 2001:172:100:100::64
             aliases:
                 - l4
         l5:
             kind: arista_ceos
             mgmt-ipv4: 172.100.100.65
+            mgmt-ipv6: 2001:172:100:100::65
             aliases:
                 - l5
         h1:
             kind: linux
             mgmt-ipv4: 172.100.100.21
+            mgmt-ipv6: 2001:172:100:100::21
             aliases:
                 - h1
             env:
@@ -61,6 +69,7 @@ topology:
         h2:
             kind: linux
             mgmt-ipv4: 172.100.100.22
+            mgmt-ipv6: 2001:172:100:100::22
             aliases:
                 - h2
             env:
@@ -68,6 +77,7 @@ topology:
         h3:
             kind: linux
             mgmt-ipv4: 172.100.100.23
+            mgmt-ipv6: 2001:172:100:100::23
             aliases:
                 - h3
             env:
@@ -75,6 +85,7 @@ topology:
         h4:
             kind: linux
             mgmt-ipv4: 172.100.100.24
+            mgmt-ipv6: 2001:172:100:100::24
             aliases:
                 - h4
             env:
@@ -82,6 +93,7 @@ topology:
         h5:
             kind: linux
             mgmt-ipv4: 172.100.100.25
+            mgmt-ipv6: 2001:172:100:100::25
             aliases:
                 - h5
             env:
