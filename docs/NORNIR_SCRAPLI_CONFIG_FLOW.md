@@ -152,10 +152,21 @@ def _get_connection_options_recursively(self, connection: str) -> Optional[Conne
 ```
 
 **Resolution Order** (first non-None value wins):
-1. Host-level `connection_options["scrapli"]`
-2. Group-level `connection_options["scrapli"]` (first group to last)
-3. Defaults-level `connection_options["scrapli"]`
-4. Host-level attributes (`host.username`, `host.password`, etc.)
+
+For each parameter (username, password, platform, etc.):
+
+1. Check `connection_options["scrapli"]` hierarchy:
+   - Host-level `connection_options["scrapli"]`
+   - Group-level `connection_options["scrapli"]` (first group to last)
+   - Defaults-level `connection_options["scrapli"]`
+
+2. If still None, fall back to host attributes:
+   - `host.username`, `host.password`, `host.platform`, etc.
+   - Note: These host attributes are themselves resolved via standard precedence (Host > Groups > Defaults)
+
+**Example**: For password resolution:
+- First checks: `host.connection_options["scrapli"].password` → `group.connection_options["scrapli"].password` → `defaults.connection_options["scrapli"].password`
+- If all are None, falls back to: `host.password` (which could come from host, group, or defaults level)
 
 ### Stage 5: Scrapli Connection Creation
 
@@ -326,20 +337,25 @@ When `cfg_load_config` is called for host "l1":
 
 ## Key Takeaways
 
-1. **Connection parameters are resolved hierarchically**: Host → Groups → Defaults → Host attributes
+1. **Connection parameters use two-stage resolution**:
+   - Stage 1: Check `connection_options["scrapli"]` (Host → Groups → Defaults)
+   - Stage 2: Fall back to host attributes if None (host attributes themselves follow Host → Groups → Defaults)
 
 2. **`extras` dict is powerful**: Anything in `connection_options["scrapli"]["extras"]` is passed directly to Scrapli
 
 3. **`extras` overrides global config**: If you set `ssh_config_file` in extras, it overrides the global Nornir SSH config
 
 4. **Password can be set multiple ways**:
-   - In inventory files (not recommended for security)
-   - Via `nr.inventory.defaults.password = "..."` (runtime injection)
-   - Via `connection_options["scrapli"]["extras"]["auth_password"]` (not recommended)
+   - In `connection_options["scrapli"]["password"]` (checked first)
+   - As a host/group/defaults attribute (fallback)
+   - Via `nr.inventory.defaults.password = "..."` (runtime injection of attribute)
+   - Via `connection_options["scrapli"]["extras"]["auth_password"]` (not recommended, but works)
 
 5. **Platform mapping happens automatically**: You can use "eos" and it becomes "arista_eos"
 
 6. **ScrapliCfg reuses the Scrapli connection**: It doesn't create a new connection, it wraps the existing one
+
+7. **Understanding the two-stage resolution is critical**: A common mistake is thinking host attributes are checked last, but they're actually the fallback when connection_options are None, and they have their own precedence rules
 
 ---
 
@@ -350,12 +366,16 @@ When `cfg_load_config` is called for host "l1":
 **Symptom**: Authentication fails even though password is set
 
 **Possible Causes**:
-1. Password is set at wrong level (e.g., only in host, but connection_options overrides it)
-2. `extras` dict contains conflicting auth settings
-3. SSH config file is being used instead of password auth
-4. Transport type doesn't support password auth properly
+1. Password is set in `connection_options["scrapli"]` but is None, so it falls back to host attribute
+2. Password is set at wrong level in host attributes (e.g., only in defaults, but you expected group override)
+3. `extras` dict contains conflicting auth settings (e.g., `auth_password` vs `password`)
+4. SSH config file is being used instead of password auth
+5. Transport type doesn't support password auth properly
 
-**Solution**: Check the resolution order and ensure password is set at the right level
+**Solution**: 
+- Check both `connection_options["scrapli"].password` AND `host.password`
+- Remember: `host.password` itself follows Host > Groups > Defaults precedence
+- Use the debug script to see exactly where the password is coming from
 
 ### Issue: SSH config file not being used
 
