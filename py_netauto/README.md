@@ -7,12 +7,14 @@ A Python package for network automation utilities, designed for use with Contain
     - When diffing the config, the config session needs to be closed
     - Check what error do you get back when the device can't allow any more config sessions to be created.
         - When you see that error, then create a workflow to delete all the config sessions.
+- Add tests for BGP Neighborship
 - Replace basedpyright with ty
 - Create a script to thsoot the variables received by each device on each task. 
     - How Nornir merges all the vars from hosts, groups and defaults and pass them to the task? 
 
 
 ## Done
+- Add IPv6 address to the Management interface
 - Create a script to thsoot inventory, to understand where all the vars and values are inherited from (Host, groud, defaults, etc) for each device. Also include the variables injected from the env file. 
 - Configure Leaf5 with scrapli. (Done)
 - Test that passwords are working from the env var and remove them from the groups or default vars (Done)
