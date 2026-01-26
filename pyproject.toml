@@ -14,16 +14,24 @@ dependencies = [
     "nornir-utils>=0.2.0",
     "pyavd[ansible]>=5.7.2",
     "pydantic-settings>=2.12.0",
+    "typer>=0.15.0",
+    "rich>=13.0.0",
+    "hypothesis>=6.0.0",
 ]
+
+[project.scripts]
+py-netauto = "py_netauto.cli:app"
 
 [dependency-groups]
 dev = [
     "ruff>=0.14.10",
     "yamllint>=1.37.1",
     "dmac-clab",
-    "basedpyright>=1.36.1",
+    "ty>=0.0.13",
     "prek>=0.2.22",
     "ipython>=9.9.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
 ]
 
 # When you try to install this project, don't look for a setup.py. Use the Hatchling engine to read my pyproject.toml and figure out what to do."
