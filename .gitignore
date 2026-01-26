@@ -50,6 +50,7 @@ Thumbs.db
 # Environment variables file (often used for passwords/keys in topology)
 .env
 .env.local
+.venv/
 
 # Temporary files often created during editing
 *.swp
@@ -60,6 +61,6 @@ Thumbs.db
 
 
 
-.venv/
-
+# --- Others ---
 /net-commander
+invent.py
