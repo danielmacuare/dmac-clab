@@ -1,6 +1,6 @@
 [project]
-name = "dmac-clab"
-version = "0.0.1"
+name = "py-netauto"
+dynamic = ["version"]
 description = "Python project to test network designs and automation workflows in Containerlab"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -57,3 +57,17 @@ known-first-party = ["py_netauto"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--ignore=ansible",
+    "--strict-markers",  # Fail on unknown markers
+    "-ra",               # Show summary of all test outcomes
+]
+python_files = "test_*.py"
+markers = [
+    "integration: Integration tests requiring Containerlab",
+    "unit: Fast unit tests with mocked dependencies",
+]
