@@ -1,0 +1,80 @@
+---
+schema_version: "1.0.1"
+schema_description: "Full data model not including computed fields that will be passed into Pydantic",
+fabric_name: ceos_clab_clos
+ip_allocation_intent:
+  p2p_supernet: 10.254.0.0/16
+  loopback0_pool: 10.255.0.0/24
+  loopback1_pool: 10.255.1.0/24
+  management:
+    ipv4_subnet: 172.100.100.0/24
+    ipv6_subnet: 2001:172:100:100::/64
+    vrf: MGMT
+  spine_asn: 64600
+
+topology:
+  spines:
+    - hostname: s1
+      interfaces:
+        - {name: Management0, ipv4: 172.100.100.121/24}
+        - {name: Loopback0, ipv4: 10.255.0.1/32}
+        - {name: Ethernet1, ipv4: 10.254.1.0/31, remote_device: l1}
+        - {name: Ethernet2, ipv4: 10.254.1.2/31, remote_device: l2}
+        - {name: Ethernet3, ipv4: 10.254.1.4/31, remote_device: l3}
+        - {name: Ethernet4, ipv4: 10.254.1.6/31, remote_device: l4}
+        - {name: Ethernet5, ipv4: 10.254.1.8/31, remote_device: l5}
+    - hostname: s2
+      interfaces:
+        - {name: Management0, ipv4: 172.100.100.122/24}
+        - {name: Loopback0, ipv4: 10.255.0.2/32}
+        - {name: Ethernet1, ipv4: 10.254.2.0/31, remote_device: l1}
+        - {name: Ethernet2, ipv4: 10.254.2.2/31, remote_device: l2}
+        - {name: Ethernet3, ipv4: 10.254.2.4/31, remote_device: l3}
+        - {name: Ethernet4, ipv4: 10.254.2.6/31, remote_device: l4}
+        - {name: Ethernet5, ipv4: 10.254.2.8/31, remote_device: l5}
+
+  leaves:
+    - hostname: l1
+      asn: 65001
+      interfaces:
+        - {name: Management0, ipv4: 172.100.100.61/24}
+        - {name: Loopback0, ipv4: 10.255.0.11/32}
+        - {name: Loopback1, ipv4: 10.255.1.11/32}
+        - {name: Ethernet1, ipv4: 10.254.1.1/31, remote_device: s1}
+        - {name: Ethernet2, ipv4: 10.254.2.1/31, remote_device: s2}
+    - hostname: l2
+      asn: 65002
+      interfaces:
+        - {name: Management0, ipv4: 172.100.100.62/24}
+        - {name: Loopback0, ipv4: 10.255.0.12/32}
+        - {name: Loopback1, ipv4: 10.255.1.12/32}
+        - {name: Ethernet1, ipv4: 10.254.1.3/31, remote_device: s1}
+        - {name: Ethernet2, ipv4: 10.254.2.3/31, remote_device: s2}
+    - hostname: l3
+      asn: 65003
+      interfaces:
+        - {name: Management0, ipv4: 172.100.100.63/24}
+        - {name: Loopback0, ipv4: 10.255.0.13/32}
+        - {name: Loopback1, ipv4: 10.255.1.13/32}
+        - {name: Ethernet1, ipv4: 10.254.1.5/31, remote_device: s1}
+        - {name: Ethernet2, ipv4: 10.254.2.5/31, remote_device: s2}
+    - hostname: l4
+      asn: 65004
+      interfaces:
+        - {name: Management0, ipv4: 172.100.100.64/24}
+        - {name: Loopback0, ipv4: 10.255.0.14/32}
+        - {name: Loopback1, ipv4: 10.255.1.14/32}
+        - {name: Ethernet1, ipv4: 10.254.1.7/31, remote_device: s1}
+        - {name: Ethernet2, ipv4: 10.254.2.7/31, remote_device: s2}
+    - hostname: l5
+      asn: 65005
+      interfaces:
+        - {name: Management0, ipv4: 172.100.100.65/24}
+        - {name: Loopback0, ipv4: 10.255.0.15/32}
+        - {name: Loopback1, ipv4: 10.255.1.15/32}
+        - {name: Ethernet1, ipv4: 10.254.1.9/31, remote_device: s1}
+        - {name: Ethernet2, ipv4: 10.254.2.9/31, remote_device: s2}
+
+
+# Notes
+# Computed Fields to be created in Pydantic to keep this datamodel clean and short.
