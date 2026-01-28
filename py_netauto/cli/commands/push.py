@@ -23,7 +23,7 @@ console = Console()
 
 def push_command(
     filters: list[str] | None = typer.Option(None, "--filter", "-f", help="Filter devices (e.g., role=leaf)"),
-    dry_run: bool = typer.Option(True, "--dry-run", "-d", help="Perform dry-run without committing (default)"),
+    dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Explicitly enable dry-run mode"),
     commit: bool = typer.Option(False, "--commit", "-c", help="Commit configuration changes to devices"),
     output_dir: Path | None = typer.Option(None, "--output-dir", "-o", help="Override output directory path"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation prompts"),
@@ -56,7 +56,7 @@ def push_command(
             console.print("[yellow]Tip:[/yellow] Use --commit to apply changes, or omit both for dry-run (default)")
             raise typer.Exit(code=1)
 
-        # Determine operation mode
+        # Determine operation mode (default to dry-run if neither flag is set)
         is_commit_mode = commit and not dry_run
 
         # Initialize PathManager with overrides
