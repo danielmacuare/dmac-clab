@@ -45,6 +45,9 @@ extend = "configs/.ruff.toml"
 [tool.uv.sources]
 dmac-clab = {path = ".", editable = true}
 
+[tool.hatch.version]
+path = "py_netauto/__init__.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["py_netauto"]
 
