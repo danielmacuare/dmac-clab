@@ -15,11 +15,14 @@
     - Loopback 1 Interface
         - Used as the source IP for VXLAN Packets
 - MGMT:
-    - Leaves: 172.100.100.0/26 (64 IPs)
-    - Spines: 172.100.100.64/28 (16 IPs)
-    - Spare1: 172.100.100.80/28 (16 IPs)
-    - Spare2: 172.100.100.96/27 (32 IPs)
-    - Servers: 172.100.100.128/25 (128 IPs)
+    - IPv4: 172.100.100.0/24
+        - Leaves: 172.100.100.0/26 (64 IPs)
+        - Spines: 172.100.100.64/28 (16 IPs)
+        - Spare1: 172.100.100.80/28 (16 IPs)
+        - Spare2: 172.100.100.96/27 (32 IPs)
+        - Servers: 172.100.100.128/25 (128 IPs)
+    - IPv6: 2001:172:100:100::/64
+        
 
 
 ### Spine 1 to Leaves - P2Ps 10.254.1.0/24
@@ -62,6 +65,36 @@
 | l3 | 10.255.1.13/32 |
 | l4 | 10.255.1.14/32 |
 | l5 | 10.255.1.15/32 |
+
+### Management Network - Static IPs (Containerlab)
+
+Management network configured in Containerlab topology for out-of-band access.
+
+**Network:** 172.100.100.0/24 (IPv4) and 2001:172:100:100::/64 (IPv6)
+
+#### Spines
+| Device Name | Management IPv4 | Management IPv6 |
+| :--- | :--- | :--- |
+| s1 | 172.100.100.121/24 | 2001:172:100:100::121/64 |
+| s2 | 172.100.100.122/24 | 2001:172:100:100::122/64 |
+
+#### Leaves
+| Device Name | Management IPv4 | Management IPv6 |
+| :--- | :--- | :--- |
+| l1 | 172.100.100.61/24 | 2001:172:100:100::61/64 |
+| l2 | 172.100.100.62/24 | 2001:172:100:100::62/64 |
+| l3 | 172.100.100.63/24 | 2001:172:100:100::63/64 |
+| l4 | 172.100.100.64/24 | 2001:172:100:100::64/64 |
+| l5 | 172.100.100.65/24 | 2001:172:100:100::65/64 |
+
+#### Hosts
+| Device Name | Management IPv4 | Management IPv6 |
+| :--- | :--- | :--- |
+| h1 | 172.100.100.21/24 | 2001:172:100:100::21/64 |
+| h2 | 172.100.100.22/24 | 2001:172:100:100::22/64 |
+| h3 | 172.100.100.23/24 | 2001:172:100:100::23/64 |
+| h4 | 172.100.100.24/24 | 2001:172:100:100::24/64 |
+| h5 | 172.100.100.25/24 | 2001:172:100:100::25/64 |
 
 ## ASN Allocation
 The ASN allocation will be based on [RFC-9738](https://www.rfcreader.com/#rfc7938) which can scale to 1023 ASNs without any workaround. If the scale of your fabric grows more than this, there are some workarounds such as:
