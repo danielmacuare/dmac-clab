@@ -27,7 +27,7 @@ Example:
     ```python
     from pathlib import Path
     import yaml
-    from py_netauto.datamodel.models import FabricDataModel
+    from py_netauto.datamodel import FabricDataModel
 
     yaml_path = Path("datamodel.yml")
     with yaml_path.open() as f:
@@ -38,3 +38,18 @@ Example:
     print(f"Spines: {len(fabric.topology.spines)}")
     ```
 """
+
+from .device import Device
+from .fabric import FabricDataModel
+from .interface import Interface
+from .network import ManagementPool, ReservedSupernets
+from .topology import Topology
+
+__all__ = [
+    "Device",
+    "FabricDataModel",
+    "Interface",
+    "ManagementPool",
+    "ReservedSupernets",
+    "Topology",
+]
