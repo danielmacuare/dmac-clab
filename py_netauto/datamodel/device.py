@@ -5,6 +5,8 @@ This module provides models for network devices including spines and leaves
 with computed fields for role determination and other device properties.
 """
 
+from ipaddress import IPv4Address
+
 from pydantic import BaseModel, Field, computed_field, field_validator
 
 from .interface import Interface
@@ -31,33 +33,62 @@ class Device(BaseModel):
     @field_validator("hostname")
     @classmethod
     def validate_hostname(cls, v: str) -> str:
+        """
+        Validate and normalize device hostname.
+
+        Ensures hostnames follow the required naming convention:
+        - Spines: s1 through s8 (exactly 8 allowed)
+        - Leaves: l1 through l128 (exactly 128 allowed)
+        - Lowercase only, no leading zeros
+
+        Args:
+            v: The hostname string to validate.
+
+        Returns:
+            str: The validated and normalized (lowercase) hostname.
+
+        Raises:
+            ValueError: If hostname doesn't match required patterns or is out of range.
+
+        Example:
+            >>> Device.validate_hostname("S1")
+            's1'
+            >>> Device.validate_hostname("l128")
+            'l128'
+            >>> Device.validate_hostname("l129")  # doctest: +SKIP
+            ValueError: Device Hostname: l129 not valid...
+        """
         v = v.lower()
 
         # Error
         if not v.startswith(("l", "s")):
-            msg: str = f"Device Hostname: {v} not valid. Valid hostnames start with 'l' or 's'"
+            msg = f"Device hostname '{v}' is invalid. Valid hostnames must start with 'l' (leaf) or 's' (spine)."
             raise ValueError(msg)
+
         # Leaves Validation
         if v.startswith("l"):
             max_leaves: int = 128
             try:
                 num = int(v[1:])
             except ValueError:
-                msg: str = f"Hostname must be {v[0]}<number>. From l1 to l{max_leaves} got: '{v}'"
+                msg = f"Invalid leaf hostname '{v}'. Expected format: l<number> (e.g., l1, l2, ..., l{max_leaves})"
                 raise ValueError(msg) from None
+
             if not 1 <= num <= max_leaves:
-                msg: str = f"Device Hostname: {v} not valid. Valid Leaf hostnames: l1 - l2 - l3 ... l{max_leaves}"
+                msg = f"Leaf hostname '{v}' out of range. Valid range: l1 to l{max_leaves}"
                 raise ValueError(msg)
             return v
+
         # Spines Validation
         max_spines: int = 8
         try:
             num: int = int(v[1:])
         except ValueError:
-            msg = f"Hostname must be {v[0]}<number>, got: '{v}'"
+            msg = f"Invalid spine hostname '{v}'. Expected format: s<number> (e.g., s1, s2, ..., s{max_spines})"
             raise ValueError(msg) from None
+
         if not 1 <= num <= max_spines:
-            msg: str = f"Device Hostname: {v} not valid. Valid Spine hostnames: s1 - s2 - s3 ... s{max_spines}"
+            msg = f"Spine hostname '{v}' out of range. Valid range: s1 to s{max_spines}"
             raise ValueError(msg)
         return v
 
@@ -88,8 +119,37 @@ class Device(BaseModel):
     @computed_field
     @property
     def fabric_asn(self) -> int:
+        """
+        Retrieve BGP ASN from fabric-wide ASN mapping.
+
+        The fabric ASN is determined by looking up the device in the fabric_asns
+        dictionary injected by the FabricDataModel. Spines use a shared ASN from
+        the 'spines' key, while leaves use their hostname as the lookup key.
+
+        Returns:
+            int: The BGP Autonomous System Number for this device.
+
+        Raises:
+            ValueError: If fabric_asns is not initialized or no mapping exists
+                for this device.
+
+        Example:
+            >>> # Spine device
+            >>> spine._fabric_asns = {"spines": 64600, "l1": 65001}
+            >>> spine.fabric_asn
+            64600
+
+            >>> # Leaf device
+            >>> leaf._fabric_asns = {"spines": 64600, "l1": 65001}
+            >>> leaf.fabric_asn
+            65001
+        """
         if not self._fabric_asns:
-            raise ValueError("Var: 'fabric_asns' not initialized")
+            msg = (
+                f"Fabric ASNs not initialized for device '{self.hostname}'. "
+                f"This should be injected by FabricDataModel during initialization."
+            )
+            raise ValueError(msg)
 
         # If role is spine, set common spine ASN
         if self.role == "spine" and "spines" in self._fabric_asns:
@@ -99,5 +159,36 @@ class Device(BaseModel):
         if self.hostname in self._fabric_asns:
             return self._fabric_asns[self.hostname]
 
-        msg: str = f"No ASN Mapping has been provided for device {self.hostname}"
+        msg = f"No ASN mapping found for device '{self.hostname}'. Available mappings: {list(self._fabric_asns.keys())}"
+        raise ValueError(msg)
+
+    @computed_field
+    @property
+    def router_id(self) -> IPv4Address:
+        """
+        Extract router ID from Loopback0 interface IP address.
+
+        The router ID is a unique identifier used by routing protocols (BGP, OSPF)
+        to identify this device in the routing domain. By convention, it is derived
+        from the Loopback0 interface IP address without the subnet mask.
+
+        Returns:
+            IPv4Address: The router ID extracted from Loopback0 (e.g., 10.255.0.1).
+
+        Raises:
+            ValueError: If the device does not have a Loopback0 interface configured.
+
+        Example:
+            >>> device = Device(hostname="s1", interfaces=[Interface(name="Loopback0", ipv4="10.255.0.1/32")])
+            >>> device.router_id
+            IPv4Address('10.255.0.1')
+        """
+        for interface in self.interfaces:
+            if interface.name == "Loopback0":
+                return interface.ipv4.ip
+
+        msg = (
+            f"Device '{self.hostname}' missing required Loopback0 interface. "
+            f"Router ID cannot be computed without Loopback0 IP address."
+        )
         raise ValueError(msg)
