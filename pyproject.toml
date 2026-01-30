@@ -26,7 +26,6 @@ py-netauto = "py_netauto.cli:app"
 dev = [
     "ruff>=0.14.10",
     "yamllint>=1.37.1",
-    "dmac-clab",
     "ty>=0.0.13",
     "prek>=0.2.22",
     "ipython>=9.9.0",
@@ -41,9 +40,6 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 extend = "configs/.ruff.toml"
-
-[tool.uv.sources]
-dmac-clab = {path = ".", editable = true}
 
 [tool.hatch.version]
 path = "py_netauto/__init__.py"
