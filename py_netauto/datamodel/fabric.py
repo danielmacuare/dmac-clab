@@ -5,7 +5,7 @@ This module provides the root FabricDataModel that contains all configuration
 data for a network fabric including topology, IP allocation, and ASN assignments.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .network import ReservedSupernets
 from .topology import Topology
@@ -40,3 +40,11 @@ class FabricDataModel(BaseModel):
     topology: Topology = Field(
         description="Physical topology structure with all devices",
     )
+
+    @model_validator(mode="after")
+    def inject_fabric_asns(self) -> "FabricDataModel":
+        """Inject fabric_asns into all devices after model initialization."""
+        for device in self.topology.spines + self.topology.leaves:
+            device._fabric_asns = self.fabric_asns  # noqa: SLF001
+
+        return self

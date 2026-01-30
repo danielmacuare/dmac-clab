@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, computed_field, field_validator
 from .interface import Interface
 
 
+# MODELS
 class Device(BaseModel):
     """
     Network device configuration.
@@ -26,6 +27,7 @@ class Device(BaseModel):
         description="List of network interfaces configured on this device",
     )
 
+    # FIELD VALIDATORS
     @field_validator("hostname")
     @classmethod
     def validate_hostname(cls, v: str) -> str:
@@ -59,6 +61,7 @@ class Device(BaseModel):
             raise ValueError(msg)
         return v
 
+    # COMPUTED FIELDS
     @computed_field
     @property
     def role(self) -> str:
@@ -80,4 +83,21 @@ class Device(BaseModel):
             return "spine"
 
         msg = f"Cannot determine role from hostname {self.hostname}."
+        raise ValueError(msg)
+
+    @computed_field
+    @property
+    def fabric_asn(self) -> int:
+        if not self._fabric_asns:
+            raise ValueError("Var: 'fabric_asns' not initialized")
+
+        # If role is spine, get spine attirbute
+        if self.role == "spine" and "spines" in self._fabric_asns:
+            return self._fabric_asns["spines"]
+
+        # if hostname lx in favirc_Asns
+        if self.hostname in self._fabric_asns:
+            return self._fabric_asns[self.hostname]
+
+        msg: str = f"No ASN Mapping has been provided for device {self.hostname}"
         raise ValueError(msg)
