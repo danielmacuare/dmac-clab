@@ -91,11 +91,11 @@ class Device(BaseModel):
         if not self._fabric_asns:
             raise ValueError("Var: 'fabric_asns' not initialized")
 
-        # If role is spine, get spine attirbute
+        # If role is spine, set common spine ASN
         if self.role == "spine" and "spines" in self._fabric_asns:
             return self._fabric_asns["spines"]
 
-        # if hostname lx in favirc_Asns
+        # if hostname leaf, get the ASN associated to that leaf.
         if self.hostname in self._fabric_asns:
             return self._fabric_asns[self.hostname]
 
