@@ -192,3 +192,32 @@ class Device(BaseModel):
             f"Router ID cannot be computed without Loopback0 IP address."
         )
         raise ValueError(msg)
+
+    @computed_field
+    @property
+    def vtep_ip(self) -> IPv4Address:
+        """
+        Extract VTEP IP from Loopback1 interface IP address.
+
+        VTEP (VXLAN Tunnel Endpoint) IP is used for EVPN-VXLAN encapsulation.
+        In MLAG pairs, both leaf switches share the same VTEP anycast address.
+
+        Returns:
+            IPv4Address: The VTEP IP extracted from Loopback1 (e.g., 10.255.1.1).
+
+        Raises:
+            ValueError: If the device does not have a Loopback1 interface configured.
+
+        Example:
+            >>> device = Device(hostname="s1", interfaces=[Interface(name="Loopback1", ipv4="10.255.1.1/32")])
+            >>> device.vtep_ip
+            IPv4Address('10.255.1.1')
+        """
+        for interface in self.interfaces:
+            if interface.name == "Loopback1":
+                return interface.ipv4.ip
+        msg = (
+            f"Device '{self.hostname}' missing required Loopback1 interface. "
+            f"VTEP IP cannot be computed without Loopback1 IP address."
+        )
+        raise ValueError(msg)
