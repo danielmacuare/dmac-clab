@@ -50,7 +50,7 @@ interface Management0
 
 ! LOOPBACK INTERFACES
 interface Loopback0
-   description VTEP_RID_{{ host.name | upper }}
+   description ROUTER_ID | EVPN_PEERING | {{ host.name | upper }}
    no shutdown
    ip address {{ host.lo0_ips[host.name] }}
 !

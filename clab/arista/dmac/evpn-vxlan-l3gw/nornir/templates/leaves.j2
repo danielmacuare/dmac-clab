@@ -50,12 +50,12 @@ interface Management0
 
 ! LOOPBACK INTERFACES
 interface Loopback0
-   description VTEP_RID_{{ host.name | upper }}
+   description ROUTER_ID | EVPN_PEERING | {{ host.name | upper }}
    no shutdown
    ip address {{ host.lo0_ips[host.name] }}
 !
 interface Loopback1
-   description VXLAN_TUNNEL_SOURCE_{{ host.name | upper }}
+   description VTEP_IP | VXLAN_DATA_PLANE | {{ host.name | upper }}
    no shutdown
    ip address {{ host.lo1_ips[host.name] }}
    
