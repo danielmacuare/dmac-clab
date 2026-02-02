@@ -7,7 +7,7 @@ with computed fields for role determination and other device properties.
 
 from ipaddress import IPv4Address
 
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
 from .interface import Interface
 
@@ -28,6 +28,34 @@ class Device(BaseModel):
     interfaces: list[Interface] = Field(
         description="List of network interfaces configured on this device",
     )
+
+    # MODEL VALIDATORS
+    @model_validator(mode="after")
+    def inject_device_hostname_into_interfaces(self) -> "Device":
+        """
+        Inject device hostname into each interface for description generation.
+
+        This model validator runs after device initialization and sets the
+        private `_device_hostname` attribute on each interface. This enables
+        the Interface.description computed field to generate standardized
+        descriptions that include the parent device hostname.
+
+        The hostname injection is required for:
+        - Management interfaces: "Management Interface | <HOSTNAME>"
+        - Loopback interfaces: "ROUTER_ID | EVPN_PEERING | <HOSTNAME>"
+        - VTEP interfaces: "VTEP_IP | VXLAN_DATA_PLANE | <HOSTNAME>"
+
+        Returns:
+            Device: The validated device instance with hostname injected into interfaces.
+
+        Example:
+            >>> device = Device(hostname="s1", interfaces=[Interface(name="Loopback0", ipv4="10.255.0.1/32")])
+            >>> device.interfaces[0]._device_hostname
+            's1'
+        """
+        for interface in self.interfaces:
+            interface._device_hostname = self.hostname
+        return self
 
     # FIELD VALIDATORS
     @field_validator("hostname")
