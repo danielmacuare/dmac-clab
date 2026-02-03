@@ -23,6 +23,8 @@ class Interface(BaseModel):
             Device model validator. Required for description computed field.
         _mgmt_vrf (str | None): Management VRF name injected by FabricDataModel.
             Required for mgmt_vrf computed field on Management0 interfaces.
+        _devices (list[Device] | None): List of all devices in fabric injected by
+            FabricDataModel. Required for remote_interface computed field on P2P links.
 
     Computed Fields:
         description (str | None): Generated based on interface type and hostname.
@@ -31,6 +33,8 @@ class Interface(BaseModel):
             - Loopback1: "VTEP_IP | VXLAN_DATA_PLANE | <HOSTNAME>"
             - Ethernet* (with remote_device): "P2P Link to <REMOTE_DEVICE>"
         mgmt_vrf (str | None): Returns injected VRF for Management0, None otherwise.
+        remote_interface (str | None): Returns the name of the reciprocal interface
+            on the remote device for P2P links. None for non-P2P interfaces.
 
     Attributes:
         name: Interface name (e.g., Ethernet1, Management0, Loopback0).
@@ -54,11 +58,16 @@ class Interface(BaseModel):
         description="Hostname of the remote device connected to this interface (None for loopback/management)",
     )
 
+    # Injected Attributes
+
     # Private attribute injected by parent Device model
     _device_hostname: str | None = None
 
     # Private attribute injected by the parent FabricDataModel
     _mgmt_vrf: str | None = None
+
+    # Type list["Device"] to avoid circular dependency on imports since the Device class imports Interface
+    _devices: list["Device"] | None = None  # noqa: F821
 
     @computed_field
     @property
@@ -133,3 +142,36 @@ class Interface(BaseModel):
         if self.name == "Management0":
             return self._mgmt_vrf
         return None
+
+    @computed_field
+    @property
+    def remote_interface(self) -> str | None:
+        if (self._devices is None) or (self.remote_device is None):
+            return None
+
+        # Find the remote_device in the _devices list
+        for device in self._devices:
+            if device.hostname == self.remote_device:
+                # Once found the remote device, check if any of its interfaces point back to this local device
+                for interface in device.interfaces:
+                    # If so, then grab its interface name. This should be the remote interface for the local device.
+                    if interface.remote_device == self._device_hostname:
+                        return interface.name
+
+        return None
+
+        # Find the remote_device in the _devices list
+        for device in self._devices:
+            if device.hostname == self.remote_device:
+                # Once found the remote device, check if any of its interfaces point back to this local device
+                for interface in device.interfaces:
+                    # If so, then grab its interface name. This should be the remote interface for the local device.
+                    if interface.remote_device == self._device_hostname:
+                        return interface.name
+
+        return None
+
+        # Get the remote interface of S1 Et1 --> L1
+        # Iterate by self_devices and see if L1 is there
+        # If there is a match, I need to check that S1 is one of the remote_device
+        # When I find that match, I will get interface.name Ethernet1

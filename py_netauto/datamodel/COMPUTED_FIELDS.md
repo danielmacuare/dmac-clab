@@ -31,6 +31,7 @@ Computed fields are derived values calculated at runtime based on other model at
 |-------|-------------|-------------|---------------------|-------------|
 | `description` | `str \| None` | `name` + `_device_hostname` | Yes (`_device_hostname`) | Generated description based on interface type and parent hostname |
 | `mgmt_vrf` | `str \| None` | `_mgmt_vrf` | Yes (`_mgmt_vrf`) | Management VRF name for Management0 interfaces |
+| `remote_interface` | `str \| None` | `_devices` lookup | Yes (`_devices`) | Name of reciprocal interface on remote device for P2P links |
 
 **Description Patterns:**
 | Interface Name | Description Format |
@@ -43,6 +44,7 @@ Computed fields are derived values calculated at runtime based on other model at
 **Injected Dependencies:**
 - `_device_hostname`: `str | None` - Injected by `Device.inject_device_hostname()` validator
 - `_mgmt_vrf`: `str | None` - Injected by `FabricDataModel.inject_mgmt_vrf()` validator
+- `_devices`: `list[Device] | None` - Injected by `FabricDataModel.inject_devices()` validator (only for P2P links)
 
 ---
 
@@ -59,9 +61,12 @@ FabricDataModel (Root)
 └── topology      │    └──► Interface._device_hostname
     ├── spines    │         (via Device validator)
     └── leaves    │
-                  ▼
-           Interface._mgmt_vrf
-           (for Management0 interfaces)
+                   ▼
+            Interface._mgmt_vrf
+            (for Management0 interfaces)
+            │
+            ├──► Interface._devices (P2P links only)
+            │         └──► remote_interface lookup
 ```
 
 ## Injection Order
@@ -69,7 +74,8 @@ FabricDataModel (Root)
 1. **FabricDataModel initialization**: Creates topology with all devices and interfaces
 2. **inject_fabric_asns()**: Runs on FabricDataModel, injects `_fabric_asns` into all devices
 3. **inject_mgmt_vrf()**: Runs on FabricDataModel, injects `_mgmt_vrf` into Management0 interfaces
-4. **inject_device_hostname()**: Runs on Device, injects `_device_hostname` into all interfaces
+4. **inject_devices()**: Runs on FabricDataModel, injects `_devices` into P2P interfaces (those with remote_device)
+5. **inject_device_hostname()**: Runs on Device, injects `_device_hostname` into all interfaces
 
 ## Accessing Computed Fields
 
@@ -87,8 +93,9 @@ print(device.router_id)      # IPv4Address('10.255.0.1')
 
 # Interface computed fields
 interface = device.interfaces[0]
-print(interface.description)  # "Management Interface | S1"
-print(interface.mgmt_vrf)     # "MGMT"
+print(interface.description)     # "Management Interface | S1"
+print(interface.mgmt_vrf)        # "MGMT"
+print(interface.remote_interface) # "Ethernet1" (for P2P links)
 ```
 
 ### JSON Export

@@ -255,6 +255,53 @@ def test_mgmt_vrf(fabric: FabricDataModel) -> bool:
     return True
 
 
+def test_remote_interface(fabric: FabricDataModel) -> bool:
+    """Test interface remote_interface computed field.
+
+    Verifies that P2P interfaces correctly identify their reciprocal
+    interface on the remote device. Tests bidirectional lookup.
+
+    Args:
+        fabric: Validated FabricDataModel instance.
+
+    Returns:
+        True if all remote_interface tests pass.
+    """
+    print("\n[TEST] Interface remote_interface Computed Field")
+
+    all_devices = fabric.topology.spines + fabric.topology.leaves
+    p2p_count = 0
+    tested_links = []
+
+    for device in all_devices:
+        for interface in device.interfaces:
+            # Test P2P interfaces
+            if interface.remote_device and interface.name.startswith("Ethernet"):
+                remote_intf = interface.remote_interface
+                assert remote_intf is not None, (
+                    f"{device.hostname}.{interface.name} remote_interface should not be None "
+                    f"(connects to {interface.remote_device})"
+                )
+                p2p_count += 1
+                tested_links.append(f"{device.hostname}.{interface.name} -> {interface.remote_device}.{remote_intf}")
+                print(f"    {device.hostname}.{interface.name} -> {interface.remote_device}.{remote_intf}")
+
+            # Test non-P2P interfaces return None
+            elif not interface.remote_device:
+                assert interface.remote_interface is None, (
+                    f"{device.hostname}.{interface.name} remote_interface should be None (non-P2P interface)"
+                )
+
+    # Verify at least some P2P links were tested
+    if p2p_count > 0:
+        print(f"  Tested P2P links: {p2p_count}")
+        print("  ✅ All remote_interface tests passed")
+    else:
+        print("  ⚠️  No P2P links found to test")
+
+    return True
+
+
 def test_network_config(fabric: FabricDataModel) -> bool:
     """Test network configuration validation.
 
@@ -311,6 +358,7 @@ def export_to_json(fabric: FabricDataModel, output_path: Path) -> None:
                     "remote_device": iface.remote_device,
                     "description": iface.description,  # Computed field
                     "mgmt_vrf": iface.mgmt_vrf,  # Computed field
+                    "remote_interface": iface.remote_interface,  # Computed field
                 }
                 for iface in device.interfaces
             ],
@@ -383,6 +431,7 @@ def main() -> None:
     all_tests_passed &= test_interfaces(fabric)
     all_tests_passed &= test_interface_descriptions(fabric)
     all_tests_passed &= test_mgmt_vrf(fabric)
+    all_tests_passed &= test_remote_interface(fabric)
     all_tests_passed &= test_network_config(fabric)
 
     # Export to JSON

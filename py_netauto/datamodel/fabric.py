@@ -23,12 +23,15 @@ class FabricDataModel(BaseModel):
             (Device._fabric_asns) for fabric_asn computed field.
         inject_mgmt_vrf: Injects mgmt_vrf into Management0 interfaces
             (Interface._mgmt_vrf) for mgmt_vrf computed field.
+        inject_devices: Injects device list into P2P interfaces
+            (Interface._devices) for remote_interface computed field.
 
     Data Flow:
         1. Model initialization creates topology with all devices/interfaces
         2. inject_fabric_asns() → Device._fabric_asns
         3. inject_mgmt_vrf() → Interface._mgmt_vrf (Management0 only)
-        4. Device model validator → Interface._device_hostname
+        4. inject_devices() → Interface._devices (P2P interfaces only)
+        5. Device model validator → Interface._device_hostname
     """
 
     schema_version: str = Field(
@@ -53,10 +56,12 @@ class FabricDataModel(BaseModel):
         description="Physical topology structure with all devices",
     )
 
+    # MODEL VALIDATORS
     @model_validator(mode="after")
     def inject_fabric_asns(self) -> "FabricDataModel":
         """Inject fabric_asns into all devices after model initialization."""
-        for device in self.topology.spines + self.topology.leaves:
+        all_devices = self.topology.spines + self.topology.leaves
+        for device in all_devices:
             device._fabric_asns = self.fabric_asns  # noqa: SLF001
 
         return self
@@ -68,5 +73,26 @@ class FabricDataModel(BaseModel):
             for interface in device.interfaces:
                 if interface.name == "Management0":
                     interface._mgmt_vrf = self.mgmt_vrf  # noqa: SLF001
+
+        return self
+
+    @model_validator(mode="after")
+    def inject_devices(self) -> "FabricDataModel":
+        """
+        Inject devices data into interfaces for remote_interface lookup.
+
+        This validator provides interfaces with access to the full device list
+        so they can perform bidirectional lookups to find reciprocal P2P links.
+        Only interfaces with remote_device set receive the topology injection
+        as an optimization.
+
+        Returns:
+            FabricDataModel: The validated model with topology injected.
+        """
+        all_devices = self.topology.spines + self.topology.leaves
+        for device in all_devices:
+            for interface in device.interfaces:
+                if interface.remote_device:  # Only P2P Links
+                    interface._devices = all_devices  # noqa: SLF001
 
         return self
