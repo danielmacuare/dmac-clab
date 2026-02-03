@@ -50,6 +50,9 @@ class Interface(BaseModel):
     # Private attribute injected by parent Device model
     _device_hostname: str | None = None
 
+    # Private attribute injected by the parent FabricDataModel
+    _mgmt_vrf: str | None = None
+
     @computed_field
     @property
     def description(self) -> str | None:
@@ -93,4 +96,33 @@ class Interface(BaseModel):
         if self.name.startswith("Ethernet") and self.remote_device:
             return f"P2P Link to {self.remote_device}"
 
+        return None
+
+    @computed_field
+    @property
+    def mgmt_vrf(self) -> str | None:
+        """
+        Determine the VRF for this interface.
+
+        Returns the management VRF name if this is a Management0 interface,
+        otherwise returns None to indicate no VRF assignment. The VRF value
+        is injected from the parent FabricDataModel during validation.
+
+        Returns:
+            str: Management VRF name (e.g., "MGMT") for Management0 interfaces
+                when injected from FabricDataModel.
+            None: For all other interface types, or if VRF was not injected.
+
+        Example:
+            >>> iface = Interface(name="Management0", ipv4="10.0.0.1/24")
+            >>> iface._mgmt_vrf = "MGMT"  # Injected by FabricDataModel
+            >>> iface.mgmt_vrf
+            'MGMT'
+
+            >>> iface = Interface(name="Ethernet1", ipv4="10.254.1.0/31")
+            >>> iface.mgmt_vrf is None
+            True
+        """
+        if self.name == "Management0":
+            return self._mgmt_vrf
         return None

@@ -30,49 +30,56 @@
             "ipv4": "172.100.100.121/24",
             "ipv6": "2001:172:100:100::121/64",
             "remote_device": null,
-            "description": "Management Interface | S1"
+            "description": "Management Interface | S1",
+            "mgmt_vrf": "MGMT"
           },
           {
             "name": "Loopback0",
             "ipv4": "10.255.0.1/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "ROUTER_ID | EVPN_PEERING | S1"
+            "description": "ROUTER_ID | EVPN_PEERING | S1",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet1",
             "ipv4": "10.254.1.0/31",
             "ipv6": null,
             "remote_device": "l1",
-            "description": "P2P Link to l1"
+            "description": "P2P Link to l1",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet2",
             "ipv4": "10.254.1.2/31",
             "ipv6": null,
             "remote_device": "l2",
-            "description": "P2P Link to l2"
+            "description": "P2P Link to l2",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet3",
             "ipv4": "10.254.1.4/31",
             "ipv6": null,
             "remote_device": "l3",
-            "description": "P2P Link to l3"
+            "description": "P2P Link to l3",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet4",
             "ipv4": "10.254.1.6/31",
             "ipv6": null,
             "remote_device": "l4",
-            "description": "P2P Link to l4"
+            "description": "P2P Link to l4",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet5",
             "ipv4": "10.254.1.8/31",
             "ipv6": null,
             "remote_device": "l5",
-            "description": "P2P Link to l5"
+            "description": "P2P Link to l5",
+            "mgmt_vrf": null
           }
         ],
         "role": "spine",
@@ -87,49 +94,56 @@
             "ipv4": "172.100.100.122/24",
             "ipv6": "2001:172:100:100::122/64",
             "remote_device": null,
-            "description": "Management Interface | S2"
+            "description": "Management Interface | S2",
+            "mgmt_vrf": "MGMT"
           },
           {
             "name": "Loopback0",
             "ipv4": "10.255.0.2/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "ROUTER_ID | EVPN_PEERING | S2"
+            "description": "ROUTER_ID | EVPN_PEERING | S2",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet1",
             "ipv4": "10.254.2.0/31",
             "ipv6": null,
             "remote_device": "l1",
-            "description": "P2P Link to l1"
+            "description": "P2P Link to l1",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet2",
             "ipv4": "10.254.2.2/31",
             "ipv6": null,
             "remote_device": "l2",
-            "description": "P2P Link to l2"
+            "description": "P2P Link to l2",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet3",
             "ipv4": "10.254.2.4/31",
             "ipv6": null,
             "remote_device": "l3",
-            "description": "P2P Link to l3"
+            "description": "P2P Link to l3",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet4",
             "ipv4": "10.254.2.6/31",
             "ipv6": null,
             "remote_device": "l4",
-            "description": "P2P Link to l4"
+            "description": "P2P Link to l4",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet5",
             "ipv4": "10.254.2.8/31",
             "ipv6": null,
             "remote_device": "l5",
-            "description": "P2P Link to l5"
+            "description": "P2P Link to l5",
+            "mgmt_vrf": null
           }
         ],
         "role": "spine",
@@ -146,35 +160,40 @@
             "ipv4": "172.100.100.61/24",
             "ipv6": "2001:172:100:100::61/64",
             "remote_device": null,
-            "description": "Management Interface | L1"
+            "description": "Management Interface | L1",
+            "mgmt_vrf": "MGMT"
           },
           {
             "name": "Loopback0",
             "ipv4": "10.255.0.11/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "ROUTER_ID | EVPN_PEERING | L1"
+            "description": "ROUTER_ID | EVPN_PEERING | L1",
+            "mgmt_vrf": null
           },
           {
             "name": "Loopback1",
             "ipv4": "10.255.1.11/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "VTEP_IP | VXLAN_DATA_PLANE | L1"
+            "description": "VTEP_IP | VXLAN_DATA_PLANE | L1",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet1",
             "ipv4": "10.254.1.1/31",
             "ipv6": null,
             "remote_device": "s1",
-            "description": "P2P Link to s1"
+            "description": "P2P Link to s1",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet2",
             "ipv4": "10.254.2.1/31",
             "ipv6": null,
             "remote_device": "s2",
-            "description": "P2P Link to s2"
+            "description": "P2P Link to s2",
+            "mgmt_vrf": null
           }
         ],
         "role": "leaf",
@@ -190,35 +209,40 @@
             "ipv4": "172.100.100.62/24",
             "ipv6": "2001:172:100:100::62/64",
             "remote_device": null,
-            "description": "Management Interface | L2"
+            "description": "Management Interface | L2",
+            "mgmt_vrf": "MGMT"
           },
           {
             "name": "Loopback0",
             "ipv4": "10.255.0.12/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "ROUTER_ID | EVPN_PEERING | L2"
+            "description": "ROUTER_ID | EVPN_PEERING | L2",
+            "mgmt_vrf": null
           },
           {
             "name": "Loopback1",
             "ipv4": "10.255.1.12/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "VTEP_IP | VXLAN_DATA_PLANE | L2"
+            "description": "VTEP_IP | VXLAN_DATA_PLANE | L2",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet1",
             "ipv4": "10.254.1.3/31",
             "ipv6": null,
             "remote_device": "s1",
-            "description": "P2P Link to s1"
+            "description": "P2P Link to s1",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet2",
             "ipv4": "10.254.2.3/31",
             "ipv6": null,
             "remote_device": "s2",
-            "description": "P2P Link to s2"
+            "description": "P2P Link to s2",
+            "mgmt_vrf": null
           }
         ],
         "role": "leaf",
@@ -234,35 +258,40 @@
             "ipv4": "172.100.100.63/24",
             "ipv6": "2001:172:100:100::63/64",
             "remote_device": null,
-            "description": "Management Interface | L3"
+            "description": "Management Interface | L3",
+            "mgmt_vrf": "MGMT"
           },
           {
             "name": "Loopback0",
             "ipv4": "10.255.0.13/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "ROUTER_ID | EVPN_PEERING | L3"
+            "description": "ROUTER_ID | EVPN_PEERING | L3",
+            "mgmt_vrf": null
           },
           {
             "name": "Loopback1",
             "ipv4": "10.255.1.13/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "VTEP_IP | VXLAN_DATA_PLANE | L3"
+            "description": "VTEP_IP | VXLAN_DATA_PLANE | L3",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet1",
             "ipv4": "10.254.1.5/31",
             "ipv6": null,
             "remote_device": "s1",
-            "description": "P2P Link to s1"
+            "description": "P2P Link to s1",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet2",
             "ipv4": "10.254.2.5/31",
             "ipv6": null,
             "remote_device": "s2",
-            "description": "P2P Link to s2"
+            "description": "P2P Link to s2",
+            "mgmt_vrf": null
           }
         ],
         "role": "leaf",
@@ -278,35 +307,40 @@
             "ipv4": "172.100.100.64/24",
             "ipv6": "2001:172:100:100::64/64",
             "remote_device": null,
-            "description": "Management Interface | L4"
+            "description": "Management Interface | L4",
+            "mgmt_vrf": "MGMT"
           },
           {
             "name": "Loopback0",
             "ipv4": "10.255.0.14/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "ROUTER_ID | EVPN_PEERING | L4"
+            "description": "ROUTER_ID | EVPN_PEERING | L4",
+            "mgmt_vrf": null
           },
           {
             "name": "Loopback1",
             "ipv4": "10.255.1.14/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "VTEP_IP | VXLAN_DATA_PLANE | L4"
+            "description": "VTEP_IP | VXLAN_DATA_PLANE | L4",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet1",
             "ipv4": "10.254.1.7/31",
             "ipv6": null,
             "remote_device": "s1",
-            "description": "P2P Link to s1"
+            "description": "P2P Link to s1",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet2",
             "ipv4": "10.254.2.7/31",
             "ipv6": null,
             "remote_device": "s2",
-            "description": "P2P Link to s2"
+            "description": "P2P Link to s2",
+            "mgmt_vrf": null
           }
         ],
         "role": "leaf",
@@ -322,35 +356,40 @@
             "ipv4": "172.100.100.65/24",
             "ipv6": "2001:172:100:100::65/64",
             "remote_device": null,
-            "description": "Management Interface | L5"
+            "description": "Management Interface | L5",
+            "mgmt_vrf": "MGMT"
           },
           {
             "name": "Loopback0",
             "ipv4": "10.255.0.15/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "ROUTER_ID | EVPN_PEERING | L5"
+            "description": "ROUTER_ID | EVPN_PEERING | L5",
+            "mgmt_vrf": null
           },
           {
             "name": "Loopback1",
             "ipv4": "10.255.1.15/32",
             "ipv6": null,
             "remote_device": null,
-            "description": "VTEP_IP | VXLAN_DATA_PLANE | L5"
+            "description": "VTEP_IP | VXLAN_DATA_PLANE | L5",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet1",
             "ipv4": "10.254.1.9/31",
             "ipv6": null,
             "remote_device": "s1",
-            "description": "P2P Link to s1"
+            "description": "P2P Link to s1",
+            "mgmt_vrf": null
           },
           {
             "name": "Ethernet2",
             "ipv4": "10.254.2.9/31",
             "ipv6": null,
             "remote_device": "s2",
-            "description": "P2P Link to s2"
+            "description": "P2P Link to s2",
+            "mgmt_vrf": null
           }
         ],
         "role": "leaf",

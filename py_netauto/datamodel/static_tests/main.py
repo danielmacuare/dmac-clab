@@ -214,6 +214,47 @@ def test_interface_descriptions(fabric: FabricDataModel) -> bool:
     return True
 
 
+def test_mgmt_vrf(fabric: FabricDataModel) -> bool:
+    """Test interface mgmt_vrf computed field.
+
+    Verifies that Management0 interfaces return MGMT VRF and all other
+    interface types return None.
+
+    Args:
+        fabric: Validated FabricDataModel instance.
+
+    Returns:
+        True if all mgmt_vrf tests pass.
+    """
+    print("\n[TEST] Interface MGMT VRF Computed Field")
+
+    all_devices = fabric.topology.spines + fabric.topology.leaves
+    mgmt_count = 0
+    non_mgmt_count = 0
+
+    for device in all_devices:
+        for interface in device.interfaces:
+            vrf = interface.mgmt_vrf
+
+            # Test Management0 returns MGMT
+            if interface.name == "Management0":
+                assert vrf == "MGMT", (
+                    f"Management0 mgmt_vrf mismatch on {device.hostname}: got '{vrf}', expected 'MGMT'"
+                )
+                mgmt_count += 1
+                print(f"    {device.hostname}.{interface.name}: VRF={vrf}")
+
+            # All other interfaces should return None
+            else:
+                assert vrf is None, f"{interface.name} mgmt_vrf should be None on {device.hostname}: got '{vrf}'"
+                non_mgmt_count += 1
+
+    print(f"  Management interfaces: {mgmt_count}")
+    print(f"  Non-management interfaces: {non_mgmt_count}")
+    print("  ✅ All mgmt_vrf tests passed")
+    return True
+
+
 def test_network_config(fabric: FabricDataModel) -> bool:
     """Test network configuration validation.
 
@@ -269,6 +310,7 @@ def export_to_json(fabric: FabricDataModel, output_path: Path) -> None:
                     "ipv6": str(iface.ipv6) if iface.ipv6 else None,
                     "remote_device": iface.remote_device,
                     "description": iface.description,  # Computed field
+                    "mgmt_vrf": iface.mgmt_vrf,  # Computed field
                 }
                 for iface in device.interfaces
             ],
@@ -340,6 +382,7 @@ def main() -> None:
     all_tests_passed &= test_devices(fabric)
     all_tests_passed &= test_interfaces(fabric)
     all_tests_passed &= test_interface_descriptions(fabric)
+    all_tests_passed &= test_mgmt_vrf(fabric)
     all_tests_passed &= test_network_config(fabric)
 
     # Export to JSON

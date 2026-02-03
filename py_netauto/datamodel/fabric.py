@@ -48,3 +48,13 @@ class FabricDataModel(BaseModel):
             device._fabric_asns = self.fabric_asns  # noqa: SLF001
 
         return self
+
+    @model_validator(mode="after")
+    def inject_mgmt_vrf(self) -> "FabricDataModel":
+        """Inject mgmt_vrf into Management0 interfaces (Interface.mgmt_vrf) after model initialization."""
+        for device in self.topology.spines + self.topology.leaves:
+            for interface in device.interfaces:
+                if interface.name == "Management0":
+                    interface._mgmt_vrf = self.mgmt_vrf  # noqa: SLF001
+
+        return self
