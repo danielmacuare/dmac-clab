@@ -19,6 +19,20 @@ class Device(BaseModel):
 
     Represents a spine or leaf switch in the fabric with its hostname
     and associated network interfaces.
+
+    Injected Dependencies:
+        _fabric_asns (dict[str, int] | None): BGP ASN mapping injected by
+            FabricDataModel during validation. Required for fabric_asn computed field.
+
+    Computed Fields:
+        role (str): Device role derived from hostname (spine/leaf).
+        fabric_asn (int): BGP ASN from fabric mapping (requires _fabric_asns).
+        router_id (IPv4Address): Extracted from Loopback0 interface.
+        vtep_ipv4 (IPv4Address): Extracted from Loopback1 interface.
+
+    Model Validators:
+        inject_device_hostname: Injects hostname into all interfaces
+            for Interface.description computed field generation.
     """
 
     _fabric_asns: dict[str, int] | None = None
@@ -31,7 +45,7 @@ class Device(BaseModel):
 
     # MODEL VALIDATORS
     @model_validator(mode="after")
-    def inject_device_hostname_into_interfaces(self) -> "Device":
+    def inject_device_hostname(self) -> "Device":
         """
         Inject device hostname into each interface for description generation.
 
@@ -54,7 +68,7 @@ class Device(BaseModel):
             's1'
         """
         for interface in self.interfaces:
-            interface._device_hostname = self.hostname
+            interface._device_hostname = self.hostname  # noqa: SLF001
         return self
 
     # FIELD VALIDATORS

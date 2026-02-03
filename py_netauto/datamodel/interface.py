@@ -18,18 +18,25 @@ class Interface(BaseModel):
     addressing and connectivity information. Automatically generates
     interface descriptions based on interface type and parent device.
 
-    The description is computed based on interface name:
-    - Management0: "Management Interface | <HOSTNAME>"
-    - Loopback0: "ROUTER_ID | EVPN_PEERING | <HOSTNAME>"
-    - Loopback1: "VTEP_IP | VXLAN_DATA_PLANE | <HOSTNAME>"
-    - Ethernet*: "P2P Link to <REMOTE_DEVICE>" (if remote_device is set)
+    Injected Dependencies:
+        _device_hostname (str | None): Parent device hostname injected by
+            Device model validator. Required for description computed field.
+        _mgmt_vrf (str | None): Management VRF name injected by FabricDataModel.
+            Required for mgmt_vrf computed field on Management0 interfaces.
+
+    Computed Fields:
+        description (str | None): Generated based on interface type and hostname.
+            - Management0: "Management Interface | <HOSTNAME>"
+            - Loopback0: "ROUTER_ID | EVPN_PEERING | <HOSTNAME>"
+            - Loopback1: "VTEP_IP | VXLAN_DATA_PLANE | <HOSTNAME>"
+            - Ethernet* (with remote_device): "P2P Link to <REMOTE_DEVICE>"
+        mgmt_vrf (str | None): Returns injected VRF for Management0, None otherwise.
 
     Attributes:
         name: Interface name (e.g., Ethernet1, Management0, Loopback0).
         ipv4: IPv4 address with prefix length.
         ipv6: Optional IPv6 address with prefix length.
         remote_device: Hostname of connected remote device (for P2P links).
-        description: Computed description based on interface type.
     """
 
     name: str = Field(

@@ -17,6 +17,18 @@ class FabricDataModel(BaseModel):
 
     Root model containing all configuration data for a network fabric
     including topology, IP allocation, ASN assignments, and metadata.
+
+    Model Validators:
+        inject_fabric_asns: Injects fabric_asns mapping into all devices
+            (Device._fabric_asns) for fabric_asn computed field.
+        inject_mgmt_vrf: Injects mgmt_vrf into Management0 interfaces
+            (Interface._mgmt_vrf) for mgmt_vrf computed field.
+
+    Data Flow:
+        1. Model initialization creates topology with all devices/interfaces
+        2. inject_fabric_asns() → Device._fabric_asns
+        3. inject_mgmt_vrf() → Interface._mgmt_vrf (Management0 only)
+        4. Device model validator → Interface._device_hostname
     """
 
     schema_version: str = Field(
