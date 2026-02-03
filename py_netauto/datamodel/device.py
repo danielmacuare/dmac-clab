@@ -33,6 +33,8 @@ class Device(BaseModel):
     Model Validators:
         inject_device_hostname: Injects hostname into all interfaces
             for Interface.description computed field generation.
+        validate_required_interfaces: Validates Loopback0 exists on all devices
+            and Loopback1 exists on leaf devices.
     """
 
     _fabric_asns: dict[str, int] | None = None
@@ -69,6 +71,42 @@ class Device(BaseModel):
         """
         for interface in self.interfaces:
             interface._device_hostname = self.hostname  # noqa: SLF001
+        return self
+
+    @model_validator(mode="after")
+    def validate_required_interfaces(self) -> "Device":
+        """
+        Validate that device has required interfaces for computed fields.
+
+        Required interfaces:
+            - Loopback0: Required for all devices (router_id computation)
+            - Loopback1: Required for leaf devices only (vtep_ipv4 computation)
+
+        Raises:
+            ValueError: If required interfaces are missing.
+
+        Returns:
+            Device: The validated device instance.
+        """
+        # Get set of interface names for efficient lookup
+        interface_names = {iface.name for iface in self.interfaces}
+
+        # All devices need Loopback0
+        if "Loopback0" not in interface_names:
+            msg = (
+                f"Device '{self.hostname}' missing required Loopback0 interface. "
+                f"Loopback0 is required for router_id computation."
+            )
+            raise ValueError(msg)
+
+        # Leaves also need Loopback1
+        if self.role == "leaf" and "Loopback1" not in interface_names:
+            msg = (
+                f"Leaf device '{self.hostname}' missing required Loopback1 interface. "
+                f"Loopback1 is required for vtep_ipv4 computation."
+            )
+            raise ValueError(msg)
+
         return self
 
     # FIELD VALIDATORS

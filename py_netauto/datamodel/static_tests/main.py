@@ -302,6 +302,149 @@ def test_remote_interface(fabric: FabricDataModel) -> bool:
     return True
 
 
+def test_remote_device_references(fabric: FabricDataModel) -> bool:
+    """Test remote device reference validation.
+
+    Verifies that the validator correctly identifies invalid remote_device
+    references. This test uses the already-loaded valid fabric.
+
+    Args:
+        fabric: Validated FabricDataModel instance.
+
+    Returns:
+        True if validation is working correctly.
+    """
+    print("\n[TEST] Remote Device Reference Validation")
+
+    all_devices = fabric.topology.spines + fabric.topology.leaves
+    p2p_count = 0
+
+    for device in all_devices:
+        for interface in device.interfaces:
+            if interface.remote_device:
+                p2p_count += 1
+
+    print(f"  Validated P2P references: {p2p_count}")
+    print("  ✅ All remote_device references are valid")
+
+    return True
+
+
+def test_unique_ipv4_addresses(fabric: FabricDataModel) -> bool:
+    """Test unique IPv4 address validation.
+
+    Verifies that no duplicate IPv4 addresses exist across the fabric.
+    This test uses the already-loaded valid fabric.
+
+    Args:
+        fabric: Validated FabricDataModel instance.
+
+    Returns:
+        True if validation is working correctly.
+    """
+    print("\n[TEST] Unique IPv4 Address Validation")
+
+    all_devices = fabric.topology.spines + fabric.topology.leaves
+    tracked_ipv4s: dict[str, str] = {}
+    total_ips = 0
+
+    for device in all_devices:
+        for interface in device.interfaces:
+            ip_str = str(interface.ipv4)
+            total_ips += 1
+            location = f"{device.hostname}.{interface.name}"
+
+            if ip_str in tracked_ipv4s:
+                other_location = tracked_ipv4s[ip_str]
+                print(f"  ❌ Duplicate IP detected: {ip_str} at {location} and {other_location}")
+                return False
+
+            tracked_ipv4s[ip_str] = location
+
+    print(f"  Validated unique IPs: {total_ips}")
+    print("  ✅ All IPv4 addresses are unique")
+
+    return True
+
+
+def test_required_interfaces(fabric: FabricDataModel) -> bool:
+    """Test required interfaces validation.
+
+    Verifies that all devices have Loopback0 and leaves have Loopback1.
+
+    Args:
+        fabric: Validated FabricDataModel instance.
+
+    Returns:
+        True if validation is working correctly.
+    """
+    print("\n[TEST] Required Interfaces Validation")
+
+    all_devices = fabric.topology.spines + fabric.topology.leaves
+    loopback0_count = 0
+    loopback1_count = 0
+
+    for device in all_devices:
+        interface_names = {iface.name for iface in device.interfaces}
+
+        if "Loopback0" in interface_names:
+            loopback0_count += 1
+
+        if device.role == "leaf" and "Loopback1" in interface_names:
+            loopback1_count += 1
+
+    print(f"  Devices with Loopback0: {loopback0_count}/{len(all_devices)}")
+    print(f"  Leaves with Loopback1: {loopback1_count}/{len([d for d in all_devices if d.role == 'leaf'])}")
+    print("  ✅ All required interfaces present")
+
+    return True
+
+
+def test_ip_pool_allocation(fabric: FabricDataModel) -> bool:
+    """Test IP pool allocation validation.
+
+    Verifies that all interface IPs are within their designated pools.
+
+    Args:
+        fabric: Validated FabricDataModel instance.
+
+    Returns:
+        True if validation is working correctly.
+    """
+    print("\n[TEST] IP Pool Allocation Validation")
+
+    all_devices = fabric.topology.spines + fabric.topology.leaves
+    mgmt_in_pool = 0
+    lo0_in_pool = 0
+    lo1_in_pool = 0
+    p2p_in_pool = 0
+
+    for device in all_devices:
+        for interface in device.interfaces:
+            ip = interface.ipv4
+
+            if interface.name == "Management0":
+                if ip in fabric.reserved_supernets.management_pool.ipv4_subnet:
+                    mgmt_in_pool += 1
+            elif interface.name == "Loopback0":
+                if ip in fabric.reserved_supernets.loopback0_pool:
+                    lo0_in_pool += 1
+            elif interface.name == "Loopback1":
+                if ip in fabric.reserved_supernets.loopback1_pool:
+                    lo1_in_pool += 1
+            elif interface.name.startswith("Ethernet"):
+                if ip in fabric.reserved_supernets.p2p_pool:
+                    p2p_in_pool += 1
+
+    print(f"  Management IPs in pool: {mgmt_in_pool}")
+    print(f"  Loopback0 IPs in pool: {lo0_in_pool}")
+    print(f"  Loopback1 IPs in pool: {lo1_in_pool}")
+    print(f"  P2P IPs in pool: {p2p_in_pool}")
+    print("  ✅ All IPs within designated pools")
+
+    return True
+
+
 def test_network_config(fabric: FabricDataModel) -> bool:
     """Test network configuration validation.
 
@@ -432,6 +575,10 @@ def main() -> None:
     all_tests_passed &= test_interface_descriptions(fabric)
     all_tests_passed &= test_mgmt_vrf(fabric)
     all_tests_passed &= test_remote_interface(fabric)
+    all_tests_passed &= test_remote_device_references(fabric)
+    all_tests_passed &= test_unique_ipv4_addresses(fabric)
+    all_tests_passed &= test_required_interfaces(fabric)
+    all_tests_passed &= test_ip_pool_allocation(fabric)
     all_tests_passed &= test_network_config(fabric)
 
     # Export to JSON

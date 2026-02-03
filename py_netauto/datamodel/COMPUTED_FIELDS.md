@@ -77,6 +77,51 @@ FabricDataModel (Root)
 4. **inject_devices()**: Runs on FabricDataModel, injects `_devices` into P2P interfaces (those with remote_device)
 5. **inject_device_hostname()**: Runs on Device, injects `_device_hostname` into all interfaces
 
+## Model Validators
+
+In addition to injection validators, the following validation ensures data integrity:
+
+| Validator | Purpose | Validates |
+|-----------|---------|-----------|
+| `validate_remote_device_references` | Ensures all `remote_device` attributes point to existing devices in the topology | Requirements 3.5 |
+| `validate_unique_ipv4_addresses` | Ensures all IPv4 addresses are unique across the fabric topology | Requirements 3.6 |
+| `validate_required_interfaces` | Ensures Loopback0 on all devices and Loopback1 on leaves | Requirements 2.5, 2.6 |
+| `validate_ip_pool_allocation` | Ensures all interface IPs are within their designated pools | Requirements 3.2 |
+
+**Example Errors:**
+
+### Remote Device Reference Error
+```
+ValueError: Device 's1' interface 'Ethernet1' references non-existent remote device 'l99'.
+Valid devices: ['l1', 'l2', 's1', 's2']
+```
+
+### Duplicate IP Error
+```
+ValueError: Duplicate IPv4 Address '10.0.0.1/24' detected: l1.Management0 conflicts with s1.Management0
+```
+
+### Required Interfaces Errors
+```
+ValueError: Device 's1' missing required Loopback0 interface. Loopback0 is required for router_id computation.
+ValueError: Leaf device 'l1' missing required Loopback1 interface. Loopback1 is required for vtep_ipv4 computation.
+```
+
+### IP Pool Allocation Errors
+```
+ValueError: Management IP '192.168.1.1/24' at s1.Management0 is outside management pool 10.0.0.0/24
+ValueError: Loopback0 IP '192.168.0.1/32' at s1.Loopback0 is outside Loopback0 pool 10.255.0.0/24
+ValueError: P2P IP '192.168.10.1/31' at s1.Ethernet1 is outside P2P pool 10.254.0.0/16
+```
+```
+# Remote device reference error
+ValueError: Device 's1' interface 'Ethernet1' references non-existent remote device 'l99'.
+Valid devices: ['l1', 'l2', 's1', 's2']
+
+# Duplicate IP error
+ValueError: Duplicate IPv4 Address '10.0.0.1/24' detected: l1.Management0 conflicts with s1.Management0
+```
+
 ## Accessing Computed Fields
 
 ### Python
