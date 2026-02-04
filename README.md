@@ -259,7 +259,7 @@ The `py_netauto.datamodel` package provides Pydantic-based models for network fa
 **Models**:
 - `FabricDataModel`: Root model with complete fabric configuration
 - `Topology`: Spine and leaf device organization
-- `Device`: Network device with computed fields (role, fabric_asn, router_id, vtep_ip)
+- `Device`: Network device with computed fields (role, fabric_asn, router_id, vtep_ipv4)
 - `Interface`: Network interface with IP addressing
 - `ReservedSupernets`: IP address pool allocations
 - `ManagementPool`: Management network configuration
@@ -268,7 +268,7 @@ The `py_netauto.datamodel` package provides Pydantic-based models for network fa
 - `Device.role`: Automatically determined from hostname (s* → spine, l* → leaf)
 - `Device.fabric_asn`: Retrieved from fabric-wide ASN mapping via dependency injection
 - `Device.router_id`: Extracted from Loopback0 IP (planned)
-- `Device.vtep_ip`: Extracted from Loopback1 IP for leaves (planned)
+- `Device.vtep_ipv4`: Extracted from Loopback1 IPv4 address for leaves (planned)
 - `Interface.description`: Auto-generated based on interface type and remote device (planned)
 - `Interface.vrf`: Assigned based on interface name (Management0 → MGMT) (planned)
 

@@ -6,11 +6,25 @@ fabric configuration including computed fields to JSON.
 """
 
 import json
+import tempfile
 from pathlib import Path
 
 import yaml
 
-from py_netauto.datamodel import FabricDataModel
+from py_netauto.datamodel import FabricDataModel, load_fabric, load_from_json, load_from_yaml
+
+
+def _raise_test_failure(expected_exception: str) -> None:
+    """Raise test failure when expected exception was not raised.
+
+    Args:
+        expected_exception: Name of the exception that should have been raised.
+
+    Raises:
+        ValueError: Always raised to indicate test failure.
+    """
+    msg = f"Should have raised {expected_exception}"
+    raise ValueError(msg)
 
 
 def load_lean_datamodel(yaml_path: Path) -> dict:
@@ -55,6 +69,9 @@ def test_topology(fabric: FabricDataModel) -> bool:
 
     Returns:
         True if all topology tests pass.
+
+    Raises:
+        ValueError: If topology validation fails.
     """
     print("\n[TEST] Topology Validation")
     print(f"  Spines: {len(fabric.topology.spines)}")
@@ -62,15 +79,27 @@ def test_topology(fabric: FabricDataModel) -> bool:
 
     # Verify each spine has required fields
     for spine in fabric.topology.spines:
-        assert spine.hostname.startswith("s"), f"Spine {spine.hostname} invalid"
-        assert spine.role == "spine", f"Spine {spine.hostname} role mismatch"
-        assert spine.fabric_asn > 0, f"Spine {spine.hostname} ASN invalid"
+        if not spine.hostname.startswith("s"):
+            msg = f"Spine {spine.hostname} invalid"
+            raise ValueError(msg)
+        if spine.role != "spine":
+            msg = f"Spine {spine.hostname} role mismatch"
+            raise ValueError(msg)
+        if spine.fabric_asn <= 0:
+            msg = f"Spine {spine.hostname} ASN invalid"
+            raise ValueError(msg)
 
     # Verify each leaf has required fields
     for leaf in fabric.topology.leaves:
-        assert leaf.hostname.startswith("l"), f"Leaf {leaf.hostname} invalid"
-        assert leaf.role == "leaf", f"Leaf {leaf.hostname} role mismatch"
-        assert leaf.fabric_asn > 0, f"Leaf {leaf.hostname} ASN invalid"
+        if not leaf.hostname.startswith("l"):
+            msg = f"Leaf {leaf.hostname} invalid"
+            raise ValueError(msg)
+        if leaf.role != "leaf":
+            msg = f"Leaf {leaf.hostname} role mismatch"
+            raise ValueError(msg)
+        if leaf.fabric_asn <= 0:
+            msg = f"Leaf {leaf.hostname} ASN invalid"
+            raise ValueError(msg)
 
     print("  ✅ All topology tests passed")
     return True
@@ -86,6 +115,9 @@ def test_devices(fabric: FabricDataModel) -> bool:
 
     Returns:
         True if all device tests pass.
+
+    Raises:
+        ValueError: If device validation fails.
     """
     print("\n[TEST] Device Validation")
 
@@ -94,24 +126,34 @@ def test_devices(fabric: FabricDataModel) -> bool:
 
     for device in all_devices:
         # Test hostname format
-        assert device.hostname.startswith(("s", "l")), f"Invalid hostname: {device.hostname}"
+        if not device.hostname.startswith(("s", "l")):
+            msg = f"Invalid hostname: {device.hostname}"
+            raise ValueError(msg)
 
         # Test role computation
         expected_role = "spine" if device.hostname.startswith("s") else "leaf"
-        assert device.role == expected_role, f"Role mismatch for {device.hostname}"
+        if device.role != expected_role:
+            msg = f"Role mismatch for {device.hostname}"
+            raise ValueError(msg)
 
         # Test ASN lookup from fabric_asns
         asn_key = "spines" if device.role == "spine" else device.hostname
-        assert device.fabric_asn == fabric.fabric_asns[asn_key], f"ASN mismatch for {device.hostname}"
+        if device.fabric_asn != fabric.fabric_asns[asn_key]:
+            msg = f"ASN mismatch for {device.hostname}"
+            raise ValueError(msg)
 
         # Test router_id (computed from Loopback0)
         router_id = str(device.router_id)
-        assert router_id.startswith("10.255.0"), f"Invalid router_id for {device.hostname}: {router_id}"
+        if not router_id.startswith("10.255.0"):
+            msg = f"Invalid router_id for {device.hostname}: {router_id}"
+            raise ValueError(msg)
 
         # Test VTEP for leaves (computed from Loopback1)
         if device.role == "leaf":
             vtep = str(device.vtep_ipv4)
-            assert vtep.startswith("10.255.1"), f"Invalid VTEP for {device.hostname}: {vtep}"
+            if not vtep.startswith("10.255.1"):
+                msg = f"Invalid VTEP for {device.hostname}: {vtep}"
+                raise ValueError(msg)
 
         print(f"    {device.hostname}: role={device.role}, asn={device.fabric_asn}, router_id={device.router_id}")
 
@@ -129,6 +171,9 @@ def test_interfaces(fabric: FabricDataModel) -> bool:
 
     Returns:
         True if all interface tests pass.
+
+    Raises:
+        ValueError: If interface validation fails.
     """
     print("\n[TEST] Interface Validation")
 
@@ -141,14 +186,68 @@ def test_interfaces(fabric: FabricDataModel) -> bool:
 
         # Verify each interface has required fields
         for interface in device.interfaces:
-            assert interface.name, f"Interface name missing on {device.hostname}"
-            assert interface.ipv4, f"IPv4 missing on {device.hostname}.{interface.name}"
+            if not interface.name:
+                msg = f"Interface name missing on {device.hostname}"
+                raise ValueError(msg)
+            if not interface.ipv4:
+                msg = f"IPv4 missing on {device.hostname}.{interface.name}"
+                raise ValueError(msg)
 
         print(f"    {device.hostname}: {interface_count} interfaces")
 
     print(f"  Total interfaces across all devices: {total_interfaces}")
     print("  ✅ All interface tests passed")
     return True
+
+
+def _validate_interface_description(device, interface, tested_types: set) -> None:
+    """Validate interface description based on interface type.
+
+    Args:
+        device: Device containing the interface.
+        interface: Interface to validate.
+        tested_types: Set to track tested interface types.
+
+    Raises:
+        ValueError: If description validation fails.
+    """
+    desc = interface.description
+
+    # Test Management0 description
+    if interface.name == "Management0":
+        expected = f"Management Interface | {device.hostname.upper()}"
+        if desc != expected:
+            msg = f"Management0 description mismatch on {device.hostname}: got '{desc}', expected '{expected}'"
+            raise ValueError(msg)
+        tested_types.add("Management0")
+        print(f"    {device.hostname}.{interface.name}: {desc}")
+
+    # Test Loopback0 description
+    elif interface.name == "Loopback0":
+        expected = f"ROUTER_ID | EVPN_PEERING | {device.hostname.upper()}"
+        if desc != expected:
+            msg = f"Loopback0 description mismatch on {device.hostname}: got '{desc}', expected '{expected}'"
+            raise ValueError(msg)
+        tested_types.add("Loopback0")
+        print(f"    {device.hostname}.{interface.name}: {desc}")
+
+    # Test Loopback1 description (only on leaves)
+    elif interface.name == "Loopback1":
+        expected = f"VTEP_IP | VXLAN_DATA_PLANE | {device.hostname.upper()}"
+        if desc != expected:
+            msg = f"Loopback1 description mismatch on {device.hostname}: got '{desc}', expected '{expected}'"
+            raise ValueError(msg)
+        tested_types.add("Loopback1")
+        print(f"    {device.hostname}.{interface.name}: {desc}")
+
+    # Test Ethernet P2P descriptions
+    elif interface.name.startswith("Ethernet") and interface.remote_device:
+        expected = f"P2P Link to {interface.remote_device}"
+        if desc != expected:
+            msg = f"Ethernet description mismatch on {device.hostname}.{interface.name}: got '{desc}', expected '{expected}'"
+            raise ValueError(msg)
+        tested_types.add("Ethernet")
+        print(f"    {device.hostname}.{interface.name}: {desc}")
 
 
 def test_interface_descriptions(fabric: FabricDataModel) -> bool:
@@ -163,6 +262,9 @@ def test_interface_descriptions(fabric: FabricDataModel) -> bool:
 
     Returns:
         True if all description tests pass.
+
+    Raises:
+        ValueError: If description validation fails.
     """
     print("\n[TEST] Interface Description Computed Field")
 
@@ -171,43 +273,7 @@ def test_interface_descriptions(fabric: FabricDataModel) -> bool:
 
     for device in all_devices:
         for interface in device.interfaces:
-            desc = interface.description
-
-            # Test Management0 description
-            if interface.name == "Management0":
-                expected = f"Management Interface | {device.hostname.upper()}"
-                assert desc == expected, (
-                    f"Management0 description mismatch on {device.hostname}: got '{desc}', expected '{expected}'"
-                )
-                tested_types.add("Management0")
-                print(f"    {device.hostname}.{interface.name}: {desc}")
-
-            # Test Loopback0 description
-            elif interface.name == "Loopback0":
-                expected = f"ROUTER_ID | EVPN_PEERING | {device.hostname.upper()}"
-                assert desc == expected, (
-                    f"Loopback0 description mismatch on {device.hostname}: got '{desc}', expected '{expected}'"
-                )
-                tested_types.add("Loopback0")
-                print(f"    {device.hostname}.{interface.name}: {desc}")
-
-            # Test Loopback1 description (only on leaves)
-            elif interface.name == "Loopback1":
-                expected = f"VTEP_IP | VXLAN_DATA_PLANE | {device.hostname.upper()}"
-                assert desc == expected, (
-                    f"Loopback1 description mismatch on {device.hostname}: got '{desc}', expected '{expected}'"
-                )
-                tested_types.add("Loopback1")
-                print(f"    {device.hostname}.{interface.name}: {desc}")
-
-            # Test Ethernet P2P descriptions
-            elif interface.name.startswith("Ethernet") and interface.remote_device:
-                expected = f"P2P Link to {interface.remote_device}"
-                assert desc == expected, (
-                    f"Ethernet description mismatch on {device.hostname}.{interface.name}: got '{desc}', expected '{expected}'"
-                )
-                tested_types.add("Ethernet")
-                print(f"    {device.hostname}.{interface.name}: {desc}")
+            _validate_interface_description(device, interface, tested_types)
 
     print(f"  Tested interface types: {', '.join(sorted(tested_types))}")
     print("  ✅ All interface description tests passed")
@@ -225,6 +291,9 @@ def test_mgmt_vrf(fabric: FabricDataModel) -> bool:
 
     Returns:
         True if all mgmt_vrf tests pass.
+
+    Raises:
+        ValueError: If mgmt_vrf validation fails.
     """
     print("\n[TEST] Interface MGMT VRF Computed Field")
 
@@ -238,15 +307,17 @@ def test_mgmt_vrf(fabric: FabricDataModel) -> bool:
 
             # Test Management0 returns MGMT
             if interface.name == "Management0":
-                assert vrf == "MGMT", (
-                    f"Management0 mgmt_vrf mismatch on {device.hostname}: got '{vrf}', expected 'MGMT'"
-                )
+                if vrf != "MGMT":
+                    msg = f"Management0 mgmt_vrf mismatch on {device.hostname}: got '{vrf}', expected 'MGMT'"
+                    raise ValueError(msg)
                 mgmt_count += 1
                 print(f"    {device.hostname}.{interface.name}: VRF={vrf}")
 
             # All other interfaces should return None
             else:
-                assert vrf is None, f"{interface.name} mgmt_vrf should be None on {device.hostname}: got '{vrf}'"
+                if vrf is not None:
+                    msg = f"{interface.name} mgmt_vrf should be None on {device.hostname}: got '{vrf}'"
+                    raise ValueError(msg)
                 non_mgmt_count += 1
 
     print(f"  Management interfaces: {mgmt_count}")
@@ -266,6 +337,9 @@ def test_remote_interface(fabric: FabricDataModel) -> bool:
 
     Returns:
         True if all remote_interface tests pass.
+
+    Raises:
+        ValueError: If remote_interface validation fails.
     """
     print("\n[TEST] Interface remote_interface Computed Field")
 
@@ -278,19 +352,21 @@ def test_remote_interface(fabric: FabricDataModel) -> bool:
             # Test P2P interfaces
             if interface.remote_device and interface.name.startswith("Ethernet"):
                 remote_intf = interface.remote_interface
-                assert remote_intf is not None, (
-                    f"{device.hostname}.{interface.name} remote_interface should not be None "
-                    f"(connects to {interface.remote_device})"
-                )
+                if remote_intf is None:
+                    msg = (
+                        f"{device.hostname}.{interface.name} remote_interface should not be None "
+                        f"(connects to {interface.remote_device})"
+                    )
+                    raise ValueError(msg)
                 p2p_count += 1
                 tested_links.append(f"{device.hostname}.{interface.name} -> {interface.remote_device}.{remote_intf}")
                 print(f"    {device.hostname}.{interface.name} -> {interface.remote_device}.{remote_intf}")
 
             # Test non-P2P interfaces return None
             elif not interface.remote_device:
-                assert interface.remote_interface is None, (
-                    f"{device.hostname}.{interface.name} remote_interface should be None (non-P2P interface)"
-                )
+                if interface.remote_interface is not None:
+                    msg = f"{device.hostname}.{interface.name} remote_interface should be None (non-P2P interface)"
+                    raise ValueError(msg)
 
     # Verify at least some P2P links were tested
     if p2p_count > 0:
@@ -414,10 +490,7 @@ def test_ip_pool_allocation(fabric: FabricDataModel) -> bool:
     print("\n[TEST] IP Pool Allocation Validation")
 
     all_devices = fabric.topology.spines + fabric.topology.leaves
-    mgmt_in_pool = 0
-    lo0_in_pool = 0
-    lo1_in_pool = 0
-    p2p_in_pool = 0
+    pool_counts = {"mgmt": 0, "lo0": 0, "lo1": 0, "p2p": 0}
 
     for device in all_devices:
         for interface in device.interfaces:
@@ -425,21 +498,20 @@ def test_ip_pool_allocation(fabric: FabricDataModel) -> bool:
 
             if interface.name == "Management0":
                 if ip in fabric.reserved_supernets.management_pool.ipv4_subnet:
-                    mgmt_in_pool += 1
+                    pool_counts["mgmt"] += 1
             elif interface.name == "Loopback0":
                 if ip in fabric.reserved_supernets.loopback0_pool:
-                    lo0_in_pool += 1
+                    pool_counts["lo0"] += 1
             elif interface.name == "Loopback1":
                 if ip in fabric.reserved_supernets.loopback1_pool:
-                    lo1_in_pool += 1
-            elif interface.name.startswith("Ethernet"):
-                if ip in fabric.reserved_supernets.p2p_pool:
-                    p2p_in_pool += 1
+                    pool_counts["lo1"] += 1
+            elif interface.name.startswith("Ethernet") and ip in fabric.reserved_supernets.p2p_pool:
+                pool_counts["p2p"] += 1
 
-    print(f"  Management IPs in pool: {mgmt_in_pool}")
-    print(f"  Loopback0 IPs in pool: {lo0_in_pool}")
-    print(f"  Loopback1 IPs in pool: {lo1_in_pool}")
-    print(f"  P2P IPs in pool: {p2p_in_pool}")
+    print(f"  Management IPs in pool: {pool_counts['mgmt']}")
+    print(f"  Loopback0 IPs in pool: {pool_counts['lo0']}")
+    print(f"  Loopback1 IPs in pool: {pool_counts['lo1']}")
+    print(f"  P2P IPs in pool: {pool_counts['p2p']}")
     print("  ✅ All IPs within designated pools")
 
     return True
@@ -455,17 +527,30 @@ def test_network_config(fabric: FabricDataModel) -> bool:
 
     Returns:
         True if all network tests pass.
+
+    Raises:
+        ValueError: If network configuration validation fails.
     """
     print("\n[TEST] Network Configuration Validation")
 
     # Test reserved supernets
-    assert fabric.reserved_supernets.p2p_pool, "P2P pool not configured"
-    assert fabric.reserved_supernets.loopback0_pool, "Loopback0 pool not configured"
-    assert fabric.reserved_supernets.loopback1_pool, "Loopback1 pool not configured"
+    if not fabric.reserved_supernets.p2p_pool:
+        msg = "P2P pool not configured"
+        raise ValueError(msg)
+    if not fabric.reserved_supernets.loopback0_pool:
+        msg = "Loopback0 pool not configured"
+        raise ValueError(msg)
+    if not fabric.reserved_supernets.loopback1_pool:
+        msg = "Loopback1 pool not configured"
+        raise ValueError(msg)
 
     # Test management pool
-    assert fabric.reserved_supernets.management_pool.ipv4_subnet, "Management IPv4 not configured"
-    assert fabric.reserved_supernets.management_pool.ipv6_subnet, "Management IPv6 not configured"
+    if not fabric.reserved_supernets.management_pool.ipv4_subnet:
+        msg = "Management IPv4 not configured"
+        raise ValueError(msg)
+    if not fabric.reserved_supernets.management_pool.ipv6_subnet:
+        msg = "Management IPv6 not configured"
+        raise ValueError(msg)
 
     print(f"  P2P Pool: {fabric.reserved_supernets.p2p_pool}")
     print(f"  Loopback0 Pool: {fabric.reserved_supernets.loopback0_pool}")
@@ -473,6 +558,227 @@ def test_network_config(fabric: FabricDataModel) -> bool:
     print(f"  Management IPv4: {fabric.reserved_supernets.management_pool.ipv4_subnet}")
     print(f"  Management IPv6: {fabric.reserved_supernets.management_pool.ipv6_subnet}")
     print("  ✅ All network tests passed")
+    return True
+
+
+def _serialize_fabric_to_dict(fabric: FabricDataModel) -> dict:
+    """Serialize fabric to dict, handling computed fields that may not exist on all devices.
+
+    Args:
+        fabric: FabricDataModel instance to serialize.
+
+    Returns:
+        Dictionary representation of the fabric.
+    """
+
+    def serialize_device(device) -> dict:
+        """Serialize a device with available computed fields."""
+        device_dict = {
+            "hostname": device.hostname,
+            "interfaces": [
+                {
+                    "name": iface.name,
+                    "ipv4": str(iface.ipv4),
+                    "ipv6": str(iface.ipv6) if iface.ipv6 else None,
+                    "remote_device": iface.remote_device,
+                }
+                for iface in device.interfaces
+            ],
+            "role": device.role,
+            "fabric_asn": device.fabric_asn,
+            "router_id": str(device.router_id),
+        }
+
+        # VTEP is only available on leaves (not spines)
+        if device.role == "leaf":
+            device_dict["vtep_ipv4"] = str(device.vtep_ipv4)
+
+        return device_dict
+
+    return {
+        "schema_version": fabric.schema_version,
+        "schema_description": fabric.schema_description,
+        "fabric_name": fabric.fabric_name,
+        "mgmt_vrf": fabric.mgmt_vrf,
+        "reserved_supernets": {
+            "p2p_pool": str(fabric.reserved_supernets.p2p_pool),
+            "loopback0_pool": str(fabric.reserved_supernets.loopback0_pool),
+            "loopback1_pool": str(fabric.reserved_supernets.loopback1_pool),
+            "management_pool": {
+                "ipv4_subnet": str(fabric.reserved_supernets.management_pool.ipv4_subnet),
+                "ipv6_subnet": str(fabric.reserved_supernets.management_pool.ipv6_subnet),
+            },
+        },
+        "fabric_asns": fabric.fabric_asns,
+        "topology": {
+            "spines": [serialize_device(spine) for spine in fabric.topology.spines],
+            "leaves": [serialize_device(leaf) for leaf in fabric.topology.leaves],
+        },
+    }
+
+
+def _test_yaml_loader(lean_datamodel_path: Path) -> bool:
+    """Test load_from_yaml function.
+
+    Args:
+        lean_datamodel_path: Path to test YAML file.
+
+    Returns:
+        True if test passes.
+
+    Raises:
+        ValueError: If test fails.
+    """
+    print("  Testing load_from_yaml()...")
+    fabric_yaml = load_from_yaml(lean_datamodel_path)
+    if fabric_yaml.fabric_name != "ceos_clab_clos":
+        msg = f"Expected fabric_name 'ceos_clab_clos', got '{fabric_yaml.fabric_name}'"
+        raise ValueError(msg)
+    print(
+        f"    ✅ Loaded {len(fabric_yaml.topology.spines)} spines, {len(fabric_yaml.topology.leaves)} leaves from YAML",
+    )
+    return True
+
+
+def _test_json_loader(fabric_yaml: FabricDataModel) -> bool:
+    """Test load_from_json function.
+
+    Args:
+        fabric_yaml: Fabric model to export and re-import.
+
+    Returns:
+        True if test passes.
+
+    Raises:
+        ValueError: If test fails.
+    """
+    print("  Testing load_from_json()...")
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json_path = Path(f.name)
+        fabric_dict = _serialize_fabric_to_dict(fabric_yaml)
+        json.dump(fabric_dict, f, indent=2)
+
+    try:
+        fabric_json = load_from_json(json_path)
+        if fabric_json.fabric_name != "ceos_clab_clos":
+            msg = f"Expected fabric_name 'ceos_clab_clos', got '{fabric_json.fabric_name}'"
+            raise ValueError(msg)
+        print(
+            f"    ✅ Loaded {len(fabric_json.topology.spines)} spines, "
+            f"{len(fabric_json.topology.leaves)} leaves from JSON",
+        )
+    finally:
+        json_path.unlink()  # Clean up temp file
+
+    return True
+
+
+def _test_auto_detection(lean_datamodel_path: Path, fabric_yaml: FabricDataModel) -> bool:
+    """Test load_fabric auto-detection.
+
+    Args:
+        lean_datamodel_path: Path to test YAML file.
+        fabric_yaml: Fabric model for JSON test.
+
+    Returns:
+        True if test passes.
+
+    Raises:
+        ValueError: If test fails.
+    """
+    print("  Testing load_fabric() auto-detection...")
+    fabric_auto_yaml = load_fabric(lean_datamodel_path)
+    if fabric_auto_yaml.fabric_name != "ceos_clab_clos":
+        msg = f"Expected fabric_name 'ceos_clab_clos', got '{fabric_auto_yaml.fabric_name}'"
+        raise ValueError(msg)
+    print("    ✅ Auto-detected YAML format")
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json_path = Path(f.name)
+        fabric_dict = _serialize_fabric_to_dict(fabric_yaml)
+        json.dump(fabric_dict, f, indent=2)
+
+    try:
+        fabric_auto_json = load_fabric(json_path)
+        if fabric_auto_json.fabric_name != "ceos_clab_clos":
+            msg = f"Expected fabric_name 'ceos_clab_clos', got '{fabric_auto_json.fabric_name}'"
+            raise ValueError(msg)
+        print("    ✅ Auto-detected JSON format")
+    finally:
+        json_path.unlink()
+
+    return True
+
+
+def _test_error_handling() -> bool:
+    """Test error handling for data loaders.
+
+    Returns:
+        True if test passes.
+
+    Raises:
+        ValueError: If test fails.
+    """
+    print("  Testing error handling (file not found)...")
+    try:
+        load_from_yaml(Path("/nonexistent/path/file.yml"))
+        msg = "Should have raised FileNotFoundError"
+        raise ValueError(msg)
+    except FileNotFoundError:
+        print("    ✅ Correctly raised FileNotFoundError")
+
+    print("  Testing error handling (unsupported format)...")
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
+        xml_path = Path(f.name)
+        f.write("<fabric></fabric>")
+
+    try:
+        load_fabric(xml_path)
+        # Should not reach here - create helper function to avoid TRY301
+        _raise_test_failure("ValueError")
+    except ValueError as e:
+        if "Unsupported file extension" in str(e):
+            print("    ✅ Correctly raised ValueError for unsupported format")
+        else:
+            msg = f"Wrong error: {e}"
+            raise ValueError(msg) from e
+    finally:
+        xml_path.unlink()
+
+    return True
+
+
+def test_data_loaders(lean_datamodel_path: Path) -> bool:
+    """Test data loader functions.
+
+    Verifies that load_from_yaml, load_from_json, and load_fabric
+    correctly load and validate fabric configurations.
+
+    Args:
+        lean_datamodel_path: Path to the test YAML file.
+
+    Returns:
+        True if all loader tests pass.
+
+    Raises:
+        ValueError: If any loader test fails.
+    """
+    print("\n[TEST] Data Loaders")
+
+    # Test 1: load_from_yaml
+    _test_yaml_loader(lean_datamodel_path)
+    fabric_yaml = load_from_yaml(lean_datamodel_path)
+
+    # Test 2: Export to JSON and load with load_from_json
+    _test_json_loader(fabric_yaml)
+
+    # Test 3: load_fabric with auto-detection
+    _test_auto_detection(lean_datamodel_path, fabric_yaml)
+
+    # Test 4 & 5: Error handling
+    _test_error_handling()
+
+    print("  ✅ All data loader tests passed")
     return True
 
 
@@ -580,6 +886,7 @@ def main() -> None:
     all_tests_passed &= test_required_interfaces(fabric)
     all_tests_passed &= test_ip_pool_allocation(fabric)
     all_tests_passed &= test_network_config(fabric)
+    all_tests_passed &= test_data_loaders(lean_datamodel_path)
 
     # Export to JSON
     export_to_json(fabric, output_path)
