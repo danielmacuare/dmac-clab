@@ -244,7 +244,10 @@ def _validate_interface_description(device, interface, tested_types: set) -> Non
     elif interface.name.startswith("Ethernet") and interface.remote_device:
         expected = f"P2P Link to {interface.remote_device}"
         if desc != expected:
-            msg = f"Ethernet description mismatch on {device.hostname}.{interface.name}: got '{desc}', expected '{expected}'"
+            msg = (
+                f"Ethernet description mismatch on {device.hostname}.{interface.name}: "
+                f"got '{desc}', expected '{expected}'"
+            )
             raise ValueError(msg)
         tested_types.add("Ethernet")
         print(f"    {device.hostname}.{interface.name}: {desc}")

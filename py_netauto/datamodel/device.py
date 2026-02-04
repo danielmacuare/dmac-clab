@@ -40,9 +40,11 @@ class Device(BaseModel):
     _fabric_asns: dict[str, int] | None = None
     hostname: str = Field(
         description="Unique hostname of the device (e.g., s1, l1, spine1, leaf1)",
+        examples=["s1", "s2", "l1", "l2", "spine1", "leaf1"],
     )
     interfaces: list[Interface] = Field(
         description="List of network interfaces configured on this device",
+        examples=[],
     )
 
     # MODEL VALIDATORS
@@ -275,29 +277,35 @@ class Device(BaseModel):
 
     @computed_field
     @property
-    def vtep_ipv4(self) -> IPv4Address:
+    def vtep_ipv4(self) -> IPv4Address | None:
         """
         Extract VTEP IPv4 address from Loopback1 interface.
 
         VTEP (VXLAN Tunnel Endpoint) IP is used for EVPN-VXLAN encapsulation.
         In MLAG pairs, both leaf switches share the same VTEP anycast address.
+        Only leaf devices have VTEP IPs; spine devices return None.
 
         Returns:
-            IPv4Address: The VTEP IPv4 address extracted from Loopback1 (e.g., 10.255.1.1).
-
-        Raises:
-            ValueError: If the device does not have a Loopback1 interface configured.
+            IPv4Address: The VTEP IPv4 address extracted from Loopback1 (e.g., 10.255.1.1) for leaf devices.
+            None: For spine devices or leaf devices without Loopback1 interface.
 
         Example:
-            >>> device = Device(hostname="s1", interfaces=[Interface(name="Loopback1", ipv4="10.255.1.1/32")])
-            >>> device.vtep_ipv4
+            >>> leaf = Device(hostname="l1", interfaces=[Interface(name="Loopback1", ipv4="10.255.1.1/32")])
+            >>> leaf.vtep_ipv4
             IPv4Address('10.255.1.1')
+
+            >>> spine = Device(hostname="s1", interfaces=[Interface(name="Loopback0", ipv4="10.255.0.1/32")])
+            >>> spine.vtep_ipv4 is None
+            True
         """
+        # Spines don't have VTEP IPs
+        if self.role == "spine":
+            return None
+
+        # Look for Loopback1 on leaf devices
         for interface in self.interfaces:
             if interface.name == "Loopback1":
                 return interface.ipv4.ip
-        msg = (
-            f"Device '{self.hostname}' missing required Loopback1 interface. "
-            f"VTEP IPv4 address cannot be computed without Loopback1 IP address."
-        )
-        raise ValueError(msg)
+
+        # Leaf without Loopback1 returns None (validation will catch this if required)
+        return None

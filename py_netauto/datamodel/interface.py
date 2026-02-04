@@ -45,17 +45,21 @@ class Interface(BaseModel):
 
     name: str = Field(
         description="Interface name (e.g., Ethernet1, Management0, Loopback0)",
+        examples=["Ethernet1", "Ethernet2", "Management0", "Loopback0", "Loopback1"],
     )
     ipv4: IPv4Interface = Field(
         description="IPv4 address with prefix length assigned to the interface (e.g., 10.254.1.0/31)",
+        examples=["10.254.1.0/31", "10.254.1.2/31", "10.255.0.1/32", "10.255.1.1/32", "172.100.100.121/24"],
     )
     ipv6: IPv6Interface | None = Field(
         default=None,
         description="IPv6 address with prefix length assigned to the interface (e.g., 2001:db8::1/64)",
+        examples=["2001:172:100:100::121/64", "2001:db8::1/64", None],
     )
     remote_device: str | None = Field(
         default=None,
         description="Hostname of the remote device connected to this interface (None for loopback/management)",
+        examples=["s1", "l1", "spine1", "leaf2", None],
     )
 
     # Injected Attributes

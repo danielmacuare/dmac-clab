@@ -44,21 +44,34 @@ class FabricDataModel(BaseModel):
 
     schema_version: str = Field(
         description="Version of the data model schema (e.g., 1.0.0)",
+        examples=["1.0.0", "1.0.1", "2.0.0"],
     )
     schema_description: str = Field(
         description="Human-readable description of this fabric configuration",
+        examples=[
+            "Full data model not including computed fields that will be passed into Pydantic",
+            "Production fabric configuration for DC1",
+            "Test environment fabric with minimal topology",
+        ],
     )
     fabric_name: str = Field(
         description="Unique name identifying this fabric (e.g., dc1, production-fabric)",
+        examples=["dc1", "production-fabric", "ceos_clab_clos", "test-fabric"],
     )
     mgmt_vrf: str = Field(
         description="VRF name for management interfaces (e.g., MGMT, management)",
+        examples=["MGMT", "management", "default"],
     )
     reserved_supernets: ReservedSupernets = Field(
         description="IP address pools reserved for fabric infrastructure",
     )
     fabric_asns: dict[str, int] = Field(
         description="BGP ASN assignments by device role (e.g., {'spines': 64600, 'l1': 65001})",
+        examples=[
+            {"spines": 64600, "l1": 65001, "l2": 65002},
+            {"spines": 65000, "leaves": 65100},
+            {"spine": 64512, "leaf1": 65001, "leaf2": 65002},
+        ],
     )
     topology: Topology = Field(
         description="Physical topology structure with all devices",

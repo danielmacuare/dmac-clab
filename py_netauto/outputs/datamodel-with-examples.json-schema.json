@@ -1,0 +1,311 @@
+{
+  "$defs": {
+    "Device": {
+      "description": "Network device configuration.\n\nRepresents a spine or leaf switch in the fabric with its hostname\nand associated network interfaces.\n\nInjected Dependencies:\n    _fabric_asns (dict[str, int] | None): BGP ASN mapping injected by\n        FabricDataModel during validation. Required for fabric_asn computed field.\n\nComputed Fields:\n    role (str): Device role derived from hostname (spine/leaf).\n    fabric_asn (int): BGP ASN from fabric mapping (requires _fabric_asns).\n    router_id (IPv4Address): Extracted from Loopback0 interface.\n    vtep_ipv4 (IPv4Address): Extracted from Loopback1 interface.\n\nModel Validators:\n    inject_device_hostname: Injects hostname into all interfaces\n        for Interface.description computed field generation.\n    validate_required_interfaces: Validates Loopback0 exists on all devices\n        and Loopback1 exists on leaf devices.",
+      "properties": {
+        "hostname": {
+          "description": "Unique hostname of the device (e.g., s1, l1, spine1, leaf1)",
+          "examples": [
+            "s1",
+            "s2",
+            "l1",
+            "l2",
+            "spine1",
+            "leaf1"
+          ],
+          "title": "Hostname",
+          "type": "string"
+        },
+        "interfaces": {
+          "description": "List of network interfaces configured on this device",
+          "examples": [],
+          "items": {
+            "$ref": "#/$defs/Interface"
+          },
+          "title": "Interfaces",
+          "type": "array"
+        }
+      },
+      "required": [
+        "hostname",
+        "interfaces"
+      ],
+      "title": "Device",
+      "type": "object"
+    },
+    "Interface": {
+      "description": "Network interface configuration.\n\nRepresents a physical or logical network interface with IPv4/IPv6\naddressing and connectivity information. Automatically generates\ninterface descriptions based on interface type and parent device.\n\nInjected Dependencies:\n    _device_hostname (str | None): Parent device hostname injected by\n        Device model validator. Required for description computed field.\n    _mgmt_vrf (str | None): Management VRF name injected by FabricDataModel.\n        Required for mgmt_vrf computed field on Management0 interfaces.\n    _devices (list[Device] | None): List of all devices in fabric injected by\n        FabricDataModel. Required for remote_interface computed field on P2P links.\n\nComputed Fields:\n    description (str | None): Generated based on interface type and hostname.\n        - Management0: \"Management Interface | <HOSTNAME>\"\n        - Loopback0: \"ROUTER_ID | EVPN_PEERING | <HOSTNAME>\"\n        - Loopback1: \"VTEP_IP | VXLAN_DATA_PLANE | <HOSTNAME>\"\n        - Ethernet* (with remote_device): \"P2P Link to <REMOTE_DEVICE>\"\n    mgmt_vrf (str | None): Returns injected VRF for Management0, None otherwise.\n    remote_interface (str | None): Returns the name of the reciprocal interface\n        on the remote device for P2P links. None for non-P2P interfaces.\n\nAttributes:\n    name: Interface name (e.g., Ethernet1, Management0, Loopback0).\n    ipv4: IPv4 address with prefix length.\n    ipv6: Optional IPv6 address with prefix length.\n    remote_device: Hostname of connected remote device (for P2P links).",
+      "properties": {
+        "name": {
+          "description": "Interface name (e.g., Ethernet1, Management0, Loopback0)",
+          "examples": [
+            "Ethernet1",
+            "Ethernet2",
+            "Management0",
+            "Loopback0",
+            "Loopback1"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "ipv4": {
+          "description": "IPv4 address with prefix length assigned to the interface (e.g., 10.254.1.0/31)",
+          "examples": [
+            "10.254.1.0/31",
+            "10.254.1.2/31",
+            "10.255.0.1/32",
+            "10.255.1.1/32",
+            "172.100.100.121/24"
+          ],
+          "format": "ipv4interface",
+          "title": "Ipv4",
+          "type": "string"
+        },
+        "ipv6": {
+          "anyOf": [
+            {
+              "format": "ipv6interface",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "IPv6 address with prefix length assigned to the interface (e.g., 2001:db8::1/64)",
+          "examples": [
+            "2001:172:100:100::121/64",
+            "2001:db8::1/64",
+            null
+          ],
+          "title": "Ipv6"
+        },
+        "remote_device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hostname of the remote device connected to this interface (None for loopback/management)",
+          "examples": [
+            "s1",
+            "l1",
+            "spine1",
+            "leaf2",
+            null
+          ],
+          "title": "Remote Device"
+        }
+      },
+      "required": [
+        "name",
+        "ipv4"
+      ],
+      "title": "Interface",
+      "type": "object"
+    },
+    "ManagementPool": {
+      "description": "Management network pool configuration.\n\nDefines the IPv4 and IPv6 subnets allocated for out-of-band\nmanagement access to network devices.",
+      "properties": {
+        "ipv4_subnet": {
+          "description": "IPv4 subnet for out-of-band management network (e.g., 192.168.0.0/24)",
+          "examples": [
+            "192.168.0.0/24",
+            "172.100.100.0/24",
+            "10.0.0.0/24"
+          ],
+          "format": "ipv4network",
+          "title": "Ipv4 Subnet",
+          "type": "string"
+        },
+        "ipv6_subnet": {
+          "description": "IPv6 subnet for out-of-band management network (e.g., 2001:db8::/64)",
+          "examples": [
+            "2001:db8::/64",
+            "2001:172:100:100::/64",
+            "fd00::/64"
+          ],
+          "format": "ipv6network",
+          "title": "Ipv6 Subnet",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ipv4_subnet",
+        "ipv6_subnet"
+      ],
+      "title": "ManagementPool",
+      "type": "object"
+    },
+    "ReservedSupernets": {
+      "description": "Reserved IP supernets for fabric allocation.\n\nDefines the IP address pools reserved for different purposes\nin the network fabric including point-to-point links, loopback\ninterfaces, and management networks.",
+      "properties": {
+        "p2p_pool": {
+          "description": "IPv4 supernet for point-to-point links between spine and leaf devices (e.g., 10.254.0.0/16)",
+          "examples": [
+            "10.254.0.0/16",
+            "10.1.0.0/16",
+            "192.168.254.0/24"
+          ],
+          "format": "ipv4network",
+          "title": "P2P Pool",
+          "type": "string"
+        },
+        "loopback0_pool": {
+          "description": "IPv4 pool for Loopback0 interfaces used as BGP router IDs (e.g., 10.255.0.0/24)",
+          "examples": [
+            "10.255.0.0/24",
+            "10.0.0.0/24",
+            "192.168.255.0/24"
+          ],
+          "format": "ipv4network",
+          "title": "Loopback0 Pool",
+          "type": "string"
+        },
+        "loopback1_pool": {
+          "description": "IPv4 pool for Loopback1 interfaces used as VXLAN tunnel endpoints (VTEP) (e.g., 10.255.1.0/24)",
+          "examples": [
+            "10.255.1.0/24",
+            "10.0.1.0/24",
+            "192.168.1.0/24"
+          ],
+          "format": "ipv4network",
+          "title": "Loopback1 Pool",
+          "type": "string"
+        },
+        "management_pool": {
+          "$ref": "#/$defs/ManagementPool",
+          "description": "Management network configuration for out-of-band device access"
+        }
+      },
+      "required": [
+        "p2p_pool",
+        "loopback0_pool",
+        "loopback1_pool",
+        "management_pool"
+      ],
+      "title": "ReservedSupernets",
+      "type": "object"
+    },
+    "Topology": {
+      "description": "Network fabric topology structure.\n\nDefines the physical topology of the fabric including all spine\nand leaf devices in a 3-stage Clos architecture.",
+      "properties": {
+        "spines": {
+          "description": "List of spine switches in the fabric",
+          "examples": [],
+          "items": {
+            "$ref": "#/$defs/Device"
+          },
+          "title": "Spines",
+          "type": "array"
+        },
+        "leaves": {
+          "description": "List of leaf switches in the fabric",
+          "examples": [],
+          "items": {
+            "$ref": "#/$defs/Device"
+          },
+          "title": "Leaves",
+          "type": "array"
+        }
+      },
+      "required": [
+        "spines",
+        "leaves"
+      ],
+      "title": "Topology",
+      "type": "object"
+    }
+  },
+  "description": "JSON Schema for network fabric data model validation and documentation",
+  "properties": {
+    "schema_version": {
+      "description": "Version of the data model schema (e.g., 1.0.0)",
+      "examples": [
+        "1.0.0",
+        "1.0.1",
+        "2.0.0"
+      ],
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "schema_description": {
+      "description": "Human-readable description of this fabric configuration",
+      "examples": [
+        "Full data model not including computed fields that will be passed into Pydantic",
+        "Production fabric configuration for DC1",
+        "Test environment fabric with minimal topology"
+      ],
+      "title": "Schema Description",
+      "type": "string"
+    },
+    "fabric_name": {
+      "description": "Unique name identifying this fabric (e.g., dc1, production-fabric)",
+      "examples": [
+        "dc1",
+        "production-fabric",
+        "ceos_clab_clos",
+        "test-fabric"
+      ],
+      "title": "Fabric Name",
+      "type": "string"
+    },
+    "mgmt_vrf": {
+      "description": "VRF name for management interfaces (e.g., MGMT, management)",
+      "examples": [
+        "MGMT",
+        "management",
+        "default"
+      ],
+      "title": "Mgmt Vrf",
+      "type": "string"
+    },
+    "reserved_supernets": {
+      "$ref": "#/$defs/ReservedSupernets",
+      "description": "IP address pools reserved for fabric infrastructure"
+    },
+    "fabric_asns": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "BGP ASN assignments by device role (e.g., {'spines': 64600, 'l1': 65001})",
+      "examples": [
+        {
+          "l1": 65001,
+          "l2": 65002,
+          "spines": 64600
+        },
+        {
+          "leaves": 65100,
+          "spines": 65000
+        },
+        {
+          "leaf1": 65001,
+          "leaf2": 65002,
+          "spine": 64512
+        }
+      ],
+      "title": "Fabric Asns",
+      "type": "object"
+    },
+    "topology": {
+      "$ref": "#/$defs/Topology",
+      "description": "Physical topology structure with all devices"
+    }
+  },
+  "required": [
+    "schema_version",
+    "schema_description",
+    "fabric_name",
+    "mgmt_vrf",
+    "reserved_supernets",
+    "fabric_asns",
+    "topology"
+  ],
+  "title": "Fabric Data Model Schema",
+  "type": "object"
+}

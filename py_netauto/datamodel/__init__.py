@@ -8,6 +8,7 @@ parameters.
 Features:
     - Type-safe data validation using Pydantic
     - Computed fields for derived values (role, descriptions, VRF assignments)
+    - Data loaders for YAML and JSON formats
     - Multiple export formats (JSON, YAML, Python dict, CSV)
     - IPv4/IPv6 address validation
     - BGP ASN management
@@ -21,19 +22,18 @@ Models:
     - ReservedSupernets: IP address pool allocations
     - ManagementPool: Management network configuration
 
+Data Loaders:
+    - load_from_yaml: Load fabric from YAML file
+    - load_from_json: Load fabric from JSON file
+    - load_fabric: Auto-detect format and load
+
 Example:
     Load a fabric configuration from YAML:
 
     ```python
-    from pathlib import Path
-    import yaml
-    from py_netauto.datamodel import FabricDataModel
+    from py_netauto.datamodel import load_from_yaml
 
-    yaml_path = Path("datamodel.yml")
-    with yaml_path.open() as f:
-        data = yaml.safe_load(f)
-
-    fabric = FabricDataModel(**data)
+    fabric = load_from_yaml("datamodel.yml")
     print(f"Fabric: {fabric.fabric_name}")
     print(f"Spines: {len(fabric.topology.spines)}")
     ```
@@ -42,6 +42,7 @@ Example:
 from .device import Device
 from .fabric import FabricDataModel
 from .interface import Interface
+from .loaders import load_fabric, load_from_json, load_from_yaml
 from .network import ManagementPool, ReservedSupernets
 from .topology import Topology
 
@@ -52,4 +53,7 @@ __all__ = [
     "ManagementPool",
     "ReservedSupernets",
     "Topology",
+    "load_fabric",
+    "load_from_json",
+    "load_from_yaml",
 ]

@@ -20,7 +20,9 @@ class Topology(BaseModel):
 
     spines: list[Device] = Field(
         description="List of spine switches in the fabric",
+        examples=[],
     )
     leaves: list[Device] = Field(
         description="List of leaf switches in the fabric",
+        examples=[],
     )
