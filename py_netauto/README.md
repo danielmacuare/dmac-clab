@@ -78,8 +78,8 @@ py-netauto render --filter role=leaf --verbose
 # Push configurations (dry-run by default)
 py-netauto push --filter role=spine --dry-run
 
-# Commit configurations to devices
-py-netauto push --filter name=leaf1 --commit --verbose
+# Commit configurations to specific device
+py-netauto push --filter name=l1 --commit --verbose
 ```
 
 #### Session Management
@@ -162,23 +162,187 @@ for device in fabric.topology.spines:
 | `--force` |  | Skip confirmation prompts | Disabled |
 | `--verbose` | `-v` | Enable verbose output | Disabled |
 
-### Filter Expressions
+## Device Filtering
 
-Use flexible filtering for device selection:
+The `--filter` option allows precise device targeting for `render`, `push`, and `sessions` commands. Filters support both simple and complex selection logic using AND/OR operations.
+
+### Filter Keys
+
+| Key | Description | Example Values |
+|-----|-------------|----------------|
+| `name` | Device name/hostname | `l1`, `l2`, `s1`, `s2`, `h1` |
+| `role` | Device role from inventory groups | `leaf`, `spine`, `host` |
+| `platform` | Device platform type | `arista_eos`, `linux` |
+
+### Simple Filtering
+
+#### Filter by Device Name
+
+Target a specific device by its hostname:
 
 ```bash
-# Single filter by role
+# Render config for device l2
+py-netauto render --filter name=l2
+
+# Push config to spine s1
+py-netauto push --filter name=s1 --commit
+```
+
+#### Filter by Role
+
+Target all devices with a specific role:
+
+```bash
+# Render configs for all leaf devices
 py-netauto render --filter role=leaf
 
-# Single filter by name
-py-netauto push --filter name=spine1 --commit
+# Push configs to all spine devices
+py-netauto push --filter role=spine --commit
 
-# Multiple filters (AND logic)
-py-netauto render --filter role=spine,name=spine1
-
-# OR filters (use pipe character)
-py-netauto render --filter 'role=leaf|spine'
+# List sessions on all host devices
+py-netauto sessions list --filter role=host
 ```
+
+#### Filter by Platform
+
+Target devices by their platform type:
+
+```bash
+# Render configs for all Arista devices
+py-netauto render --filter platform=arista_eos
+
+# Push to all Linux hosts
+py-netauto push --filter platform=linux --commit
+```
+
+### OR Filtering (Multiple Values)
+
+Use the pipe character `|` to match multiple values for the same key (OR logic):
+
+```bash
+# Render configs for devices l1 OR l2
+py-netauto render --filter 'name=l1|l2'
+
+# Push to devices s1 OR s2
+py-netauto push --filter 'name=s1|s2' --commit
+
+# Render for leaf OR spine devices
+py-netauto render --filter 'role=leaf|spine'
+
+# Target multiple specific devices
+py-netauto push --filter 'name=l1|l2|l3|l4' --commit
+```
+
+**Note:** Use quotes around filters with pipe characters to prevent shell interpretation.
+
+### AND Filtering (Multiple Conditions)
+
+Use commas `,` to combine multiple filter conditions (AND logic):
+
+```bash
+# Render for leaf devices named l1 (role=leaf AND name=l1)
+py-netauto render --filter role=leaf,name=l1
+
+# Push to Arista spine devices (platform=arista_eos AND role=spine)
+py-netauto push --filter platform=arista_eos,role=spine --commit
+
+# List sessions on specific leaf device
+py-netauto sessions list --filter role=leaf,name=l2
+```
+
+### Complex Filtering (AND + OR)
+
+Combine AND and OR logic for advanced device selection:
+
+```bash
+# Render for leaf devices l1 OR l2 (role=leaf AND (name=l1 OR name=l2))
+py-netauto render --filter 'role=leaf,name=l1|l2'
+
+# Push to spine devices s1 OR s2 (role=spine AND (name=s1 OR name=s2))
+py-netauto push --filter 'role=spine,name=s1|s2' --commit
+
+# Render for Arista devices that are leaf OR spine
+py-netauto render --filter 'platform=arista_eos,role=leaf|spine'
+
+# Push to specific devices that are leaves
+py-netauto push --filter 'role=leaf,name=l1|l3|l5' --commit
+```
+
+### Practical Filtering Workflows
+
+#### Incremental Deployment
+
+Deploy configurations incrementally to minimize risk:
+
+```bash
+# Step 1: Test on a single device
+py-netauto push --filter name=l1 --dry-run
+py-netauto push --filter name=l1 --commit
+
+# Step 2: Deploy to a subset of devices
+py-netauto push --filter 'name=l1|l2' --commit
+
+# Step 3: Deploy to all devices of a role
+py-netauto push --filter role=leaf --commit
+```
+
+#### Role-Based Operations
+
+Perform operations on specific device roles:
+
+```bash
+# Render all spine configs
+py-netauto render --filter role=spine
+
+# Push to all leaf devices
+py-netauto push --filter role=leaf --commit
+
+# Check sessions on all network devices (exclude hosts)
+py-netauto sessions list --filter 'role=leaf|spine'
+```
+
+#### Maintenance Windows
+
+Target specific devices during maintenance:
+
+```bash
+# Maintenance on specific spine pair
+py-netauto push --filter 'role=spine,name=s1|s2' --commit
+
+# Update specific leaf devices
+py-netauto push --filter 'name=l1|l2|l3' --commit --verbose
+
+# Render configs for devices in a specific rack (if named accordingly)
+py-netauto render --filter 'name=l1|l2|l3|l4|l5'
+```
+
+#### Platform-Specific Operations
+
+Target devices by platform when managing multi-vendor environments:
+
+```bash
+# Render configs for all Arista devices
+py-netauto render --filter platform=arista_eos
+
+# Push to Arista leaf devices only
+py-netauto push --filter platform=arista_eos,role=leaf --commit
+
+# Check sessions on all network devices (exclude Linux hosts)
+py-netauto sessions list --filter platform=arista_eos
+```
+
+### Filter Syntax Summary
+
+| Pattern | Syntax | Example | Description |
+|---------|--------|---------|-------------|
+| Single filter | `key=value` | `name=l1` | Match one condition |
+| OR filter | `key=val1\|val2` | `name=l1\|l2` | Match any value (use quotes) |
+| AND filter | `key1=val1,key2=val2` | `role=leaf,name=l1` | Match all conditions |
+| Complex | `key1=val1,key2=v2\|v3` | `role=leaf,name=l1\|l2` | Combine AND + OR (use quotes) |
+
+### Filter Expressions
+
+**See the [Device Filtering](#device-filtering) section above for comprehensive filtering examples and use cases.**
 
 ## Package Structure
 
@@ -349,8 +513,11 @@ py-netauto datamodel export fabric.yml --format json-schema --output api-schema.
 py-netauto render --filter role=leaf --output-dir /tmp/configs --verbose
 
 # Deploy configurations with dry-run first, then commit
-py-netauto push --filter name=spine1 --dry-run --verbose
-py-netauto push --filter name=spine1 --commit --verbose
+py-netauto push --filter name=s1 --dry-run --verbose
+py-netauto push --filter name=s1 --commit --verbose
+
+# Deploy to multiple devices at once
+py-netauto push --filter 'name=l1|l2|l3' --commit --verbose
 
 # Export to multiple formats
 py-netauto datamodel export fabric.yml --format json --output fabric.json --pretty
