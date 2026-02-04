@@ -61,12 +61,13 @@ cp .env.example .env
 #### Data Model Operations
 ```bash
 # Validate a fabric data model
-py-netauto datamodel validate fabric.yml
+py-netauto datamodel validate fabric.yml --verbose
 
 # Export to different formats
 py-netauto datamodel export fabric.yml --format json --output fabric.json
 py-netauto datamodel export fabric.yml --format yaml --pretty
 py-netauto datamodel export fabric.yml --format json-schema --output schema.json
+py-netauto datamodel export fabric.yml --format python  # prints to stdout
 ```
 
 #### Configuration Management
@@ -78,7 +79,7 @@ py-netauto render --filter role=leaf --verbose
 py-netauto push --filter role=spine --dry-run
 
 # Commit configurations to devices
-py-netauto push --filter name=leaf1 --commit
+py-netauto push --filter name=leaf1 --commit --verbose
 ```
 
 #### Session Management
@@ -118,41 +119,64 @@ for device in fabric.topology.spines:
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `render` | Render device configurations from Jinja2 templates | `py-netauto render --filter role=leaf` |
-| `push` | Push configurations to network devices | `py-netauto push --filter name=spine1 --commit` |
+| `render` | Render device configurations from Jinja2 templates | `py-netauto render --filter role=leaf -v` |
+| `push` | Push configurations to network devices (dry-run by default) | `py-netauto push --filter name=spine1 --commit` |
 | `sessions` | Manage configuration sessions on devices | `py-netauto sessions list` |
 | `datamodel` | Fabric data model validation and export | `py-netauto datamodel validate fabric.yml` |
 
 ### Data Model Commands
 
-| Command | Description | Example |
+| Command | Description | Options |
 |---------|-------------|---------|
-| `datamodel validate` | Validate fabric data model file | `py-netauto datamodel validate fabric.yml --verbose` |
-| `datamodel export` | Export to various formats | `py-netauto datamodel export fabric.yml --format yaml` |
+| `datamodel validate` | Validate fabric data model file | `--strict`, `--show-warnings`, `--verbose` |
+| `datamodel export` | Export to various formats | `--format`, `--output`, `--pretty`, `--verbose` |
 
 ### Available Export Formats
 
-| Format | Description | Example |
-|--------|-------------|---------|
-| `json` | JSON with pretty-printing | `--format json --pretty` |
-| `yaml` | YAML with proper formatting | `--format yaml --pretty` |
-| `json-schema` | JSON Schema for API docs | `--format json-schema` |
-| `python` | Python dictionary (stdout) | `--format python` |
+| Format | Description | Output | Example |
+|--------|-------------|--------|---------|
+| `json` | JSON with computed fields | File or stdout | `--format json --output fabric.json` |
+| `yaml` | YAML with computed fields | File or stdout | `--format yaml --pretty` |
+| `json-schema` | JSON Schema for API documentation | File or stdout | `--format json-schema --output schema.json` |
+| `python` | Python dictionary representation | Stdout only | `--format python` |
 
 *Coming soon: `csv`, `nornir`*
+
+### Render Command Options
+
+| Option | Short | Description | Example |
+|--------|-------|-------------|---------|
+| `--filter` | `-f` | Filter devices by role or name | `--filter role=leaf` |
+| `--output-dir` | `-o` | Override output directory | `--output-dir /tmp/configs` |
+| `--templates-dir` | `-t` | Override templates directory | `--templates-dir custom/templates` |
+| `--verbose` | `-v` | Enable verbose output | `-v` |
+
+### Push Command Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--filter` | `-f` | Filter devices by role or name | All devices |
+| `--dry-run` | `-d` | Explicitly enable dry-run mode | Enabled |
+| `--commit` | `-c` | Commit configuration changes | Disabled |
+| `--output-dir` | `-o` | Override output directory | From config |
+| `--force` |  | Skip confirmation prompts | Disabled |
+| `--verbose` | `-v` | Enable verbose output | Disabled |
 
 ### Filter Expressions
 
 Use flexible filtering for device selection:
 
 ```bash
-# Single filter
+# Single filter by role
 py-netauto render --filter role=leaf
 
-# Multiple filters (AND)
-py-netauto push --filter role=spine,name=spine1
+# Single filter by name
+py-netauto push --filter name=spine1 --commit
 
-# OR filters
+# Multiple filters (AND logic)
+py-netauto render --filter role=spine,name=spine1
+
+# OR filters (use pipe character)
 py-netauto render --filter 'role=leaf|spine'
 ```
 
@@ -318,14 +342,20 @@ for device in fabric.topology.leaves:
 ### CLI Automation Examples
 ```bash
 # Validate and export data model
-py-netauto datamodel validate fabric.yml --verbose
+py-netauto datamodel validate fabric.yml --verbose --strict
 py-netauto datamodel export fabric.yml --format json-schema --output api-schema.json
 
 # Render configurations for specific devices
-py-netauto render --filter role=leaf --output-dir /tmp/configs
+py-netauto render --filter role=leaf --output-dir /tmp/configs --verbose
 
-# Deploy configurations with confirmation
+# Deploy configurations with dry-run first, then commit
+py-netauto push --filter name=spine1 --dry-run --verbose
 py-netauto push --filter name=spine1 --commit --verbose
+
+# Export to multiple formats
+py-netauto datamodel export fabric.yml --format json --output fabric.json --pretty
+py-netauto datamodel export fabric.yml --format yaml --output fabric.yaml --pretty
+py-netauto datamodel export fabric.yml --format python  # prints to stdout
 ```
 
 ## License
