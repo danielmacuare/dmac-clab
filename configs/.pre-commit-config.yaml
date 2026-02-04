@@ -1,10 +1,10 @@
 # prek configuration - https://prek.j178.dev/
 # prek is a faster, Rust-based alternative to pre-commit that manages tool installation automatically
-minimum_prek_version: '0.2.0'
+minimum_prek_version: '0.3.0'
 
 repos:
     - repo: https://github.com/google/yamlfmt
-      rev: v0.20.0
+      rev: v0.21.0
       hooks:
         - id: yamlfmt
           description: This hook uses github.com/google/yamlfmt to format yaml files.
@@ -21,7 +21,7 @@ repos:
           args: ["-c", "configs/.yamllint.yaml"]
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.8.4
+      rev: v0.15.0
       hooks:
         - id: ruff
           description: Run Ruff linter on Python files.
