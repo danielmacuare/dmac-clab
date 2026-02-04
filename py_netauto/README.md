@@ -237,17 +237,17 @@ py-netauto push --filter 'name=l1|l2|l3|l4' --commit
 
 ### AND Filtering (Multiple Conditions)
 
-Use commas `,` to combine multiple filter conditions (AND logic):
+Use multiple `--filter` options to combine filter conditions (AND logic):
 
 ```bash
 # Render for leaf devices named l1 (role=leaf AND name=l1)
-py-netauto render --filter role=leaf,name=l1
+py-netauto render --filter role=leaf --filter name=l1
 
 # Push to Arista spine devices (platform=arista_eos AND role=spine)
-py-netauto push --filter platform=arista_eos,role=spine --commit
+py-netauto push --filter platform=arista_eos --filter role=spine --commit
 
 # List sessions on specific leaf device
-py-netauto sessions list --filter role=leaf,name=l2
+py-netauto sessions list --filter role=leaf --filter name=l2
 ```
 
 ### Complex Filtering (AND + OR)
@@ -256,16 +256,16 @@ Combine AND and OR logic for advanced device selection:
 
 ```bash
 # Render for leaf devices l1 OR l2 (role=leaf AND (name=l1 OR name=l2))
-py-netauto render --filter 'role=leaf,name=l1|l2'
+py-netauto render --filter role=leaf --filter 'name=l1|l2'
 
 # Push to spine devices s1 OR s2 (role=spine AND (name=s1 OR name=s2))
-py-netauto push --filter 'role=spine,name=s1|s2' --commit
+py-netauto push --filter role=spine --filter 'name=s1|s2' --commit
 
 # Render for Arista devices that are leaf OR spine
-py-netauto render --filter 'platform=arista_eos,role=leaf|spine'
+py-netauto render --filter platform=arista_eos --filter 'role=leaf|spine'
 
 # Push to specific devices that are leaves
-py-netauto push --filter 'role=leaf,name=l1|l3|l5' --commit
+py-netauto push --filter role=leaf --filter 'name=l1|l3|l5' --commit
 ```
 
 ### Practical Filtering Workflows
@@ -307,7 +307,7 @@ Target specific devices during maintenance:
 
 ```bash
 # Maintenance on specific spine pair
-py-netauto push --filter 'role=spine,name=s1|s2' --commit
+py-netauto push --filter role=spine --filter 'name=s1|s2' --commit
 
 # Update specific leaf devices
 py-netauto push --filter 'name=l1|l2|l3' --commit --verbose
@@ -325,7 +325,7 @@ Target devices by platform when managing multi-vendor environments:
 py-netauto render --filter platform=arista_eos
 
 # Push to Arista leaf devices only
-py-netauto push --filter platform=arista_eos,role=leaf --commit
+py-netauto push --filter platform=arista_eos --filter role=leaf --commit
 
 # Check sessions on all network devices (exclude Linux hosts)
 py-netauto sessions list --filter platform=arista_eos
@@ -335,10 +335,10 @@ py-netauto sessions list --filter platform=arista_eos
 
 | Pattern | Syntax | Example | Description |
 |---------|--------|---------|-------------|
-| Single filter | `key=value` | `name=l1` | Match one condition |
-| OR filter | `key=val1\|val2` | `name=l1\|l2` | Match any value (use quotes) |
-| AND filter | `key1=val1,key2=val2` | `role=leaf,name=l1` | Match all conditions |
-| Complex | `key1=val1,key2=v2\|v3` | `role=leaf,name=l1\|l2` | Combine AND + OR (use quotes) |
+| Single filter | `--filter key=value` | `--filter name=l1` | Match one condition |
+| OR filter | `--filter 'key=val1\|val2'` | `--filter 'name=l1\|l2'` | Match any value (use quotes) |
+| AND filter | `--filter key1=val1 --filter key2=val2` | `--filter role=leaf --filter name=l1` | Match all conditions |
+| Complex | `--filter key1=val1 --filter 'key2=v2\|v3'` | `--filter role=leaf --filter 'name=l1\|l2'` | Combine AND + OR (use quotes) |
 
 ### Filter Expressions
 
