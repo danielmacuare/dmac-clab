@@ -23,12 +23,15 @@ class Device(BaseModel):
     Injected Dependencies:
         _fabric_asns (dict[str, int] | None): BGP ASN mapping injected by
             FabricDataModel during validation. Required for fabric_asn computed field.
+        _topology_platform (str | None): Default platform from Topology model,
+            injected by FabricDataModel. Used when device platform is not set.
 
     Computed Fields:
         role (str): Device role derived from hostname (spine/leaf).
         fabric_asn (int): BGP ASN from fabric mapping (requires _fabric_asns).
         router_id (IPv4Address): Extracted from Loopback0 interface.
         vtep_ipv4 (IPv4Address): Extracted from Loopback1 interface.
+        effective_platform (str): Platform to use (device-level or topology-level).
 
     Model Validators:
         inject_device_hostname: Injects hostname into all interfaces
@@ -38,9 +41,15 @@ class Device(BaseModel):
     """
 
     _fabric_asns: dict[str, int] | None = None
+    _topology_platform: str | None = None
     hostname: str = Field(
         description="Unique hostname of the device (e.g., s1, l1, spine1, leaf1)",
         examples=["s1", "s2", "l1", "l2", "spine1", "leaf1"],
+    )
+    platform: str | None = Field(
+        default=None,
+        description="Device platform type (e.g., arista_eos, cisco_ios). If not set, inherits from topology level.",
+        examples=["arista_eos", "cisco_ios", "juniper_junos", "nokia_sros"],
     )
     interfaces: list[Interface] = Field(
         description="List of network interfaces configured on this device",
@@ -309,3 +318,40 @@ class Device(BaseModel):
 
         # Leaf without Loopback1 returns None (validation will catch this if required)
         return None
+
+    @computed_field
+    @property
+    def effective_platform(self) -> str:
+        """
+        Get the effective platform for this device.
+
+        Returns the device-specific platform if set, otherwise falls back
+        to the topology-level platform injected during model initialization.
+
+        Returns:
+            str: The platform type to use for this device.
+
+        Raises:
+            ValueError: If neither device platform nor topology platform is set.
+
+        Example:
+            >>> device = Device(hostname="s1", platform="cisco_ios", interfaces=[])
+            >>> device.effective_platform
+            'cisco_ios'
+
+            >>> device = Device(hostname="l1", interfaces=[])
+            >>> device._topology_platform = "arista_eos"
+            >>> device.effective_platform
+            'arista_eos'
+        """
+        if self.platform:
+            return self.platform
+
+        if self._topology_platform:
+            return self._topology_platform
+
+        msg = (
+            f"Platform not set for device '{self.hostname}' and no topology-level "
+            f"platform available. Set platform at device or topology level."
+        )
+        raise ValueError(msg)

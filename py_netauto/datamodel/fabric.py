@@ -23,6 +23,8 @@ class FabricDataModel(BaseModel):
     Model Validators:
         inject_fabric_asns: Injects fabric_asns mapping into all devices
             (Device._fabric_asns) for fabric_asn computed field.
+        inject_topology_platform: Injects topology.platform into all devices
+            (Device._topology_platform) for effective_platform computed field.
         inject_mgmt_vrf: Injects mgmt_vrf into Management0 interfaces
             (Interface._mgmt_vrf) for mgmt_vrf computed field.
         inject_devices: Injects device list into P2P interfaces
@@ -41,9 +43,10 @@ class FabricDataModel(BaseModel):
     Data Flow:
         1. Model initialization creates topology with all devices/interfaces
         2. inject_fabric_asns() → Device._fabric_asns
-        3. inject_mgmt_vrf() → Interface._mgmt_vrf (Management0 only)
-        4. inject_devices() → Interface._devices (P2P interfaces only)
-        5. Device model validator → Interface._device_hostname
+        3. inject_topology_platform() → Device._topology_platform
+        4. inject_mgmt_vrf() → Interface._mgmt_vrf (Management0 only)
+        5. inject_devices() → Interface._devices (P2P interfaces only)
+        6. Device model validator → Interface._device_hostname
     """
 
     schema_version: str = Field(
@@ -129,16 +132,25 @@ class FabricDataModel(BaseModel):
     @model_validator(mode="after")
     def inject_fabric_asns(self) -> "FabricDataModel":
         """Inject fabric_asns into all devices after model initialization."""
-        all_devices = self.topology.spines + self.topology.leaves
+        all_devices = self.topology.spines.devices + self.topology.leaves.devices
         for device in all_devices:
             device._fabric_asns = self.fabric_asns  # noqa: SLF001
 
         return self
 
     @model_validator(mode="after")
+    def inject_topology_platform(self) -> "FabricDataModel":
+        """Inject topology-level platform into all devices after model initialization."""
+        all_devices = self.topology.spines.devices + self.topology.leaves.devices
+        for device in all_devices:
+            device._topology_platform = self.topology.platform  # noqa: SLF001
+
+        return self
+
+    @model_validator(mode="after")
     def inject_mgmt_vrf(self) -> "FabricDataModel":
         """Inject mgmt_vrf into Management0 interfaces (Interface.mgmt_vrf) after model initialization."""
-        for device in self.topology.spines + self.topology.leaves:
+        for device in self.topology.spines.devices + self.topology.leaves.devices:
             for interface in device.interfaces:
                 if interface.name == "Management0":
                     interface._mgmt_vrf = self.mgmt_vrf  # noqa: SLF001
@@ -158,7 +170,7 @@ class FabricDataModel(BaseModel):
         Returns:
             FabricDataModel: The validated model with topology injected.
         """
-        all_devices = self.topology.spines + self.topology.leaves
+        all_devices = self.topology.spines.devices + self.topology.leaves.devices
         for device in all_devices:
             for interface in device.interfaces:
                 if interface.remote_device:  # Only P2P Links
@@ -180,7 +192,7 @@ class FabricDataModel(BaseModel):
         Returns:
             FabricDataModel: The validated model.
         """
-        all_devices = self.topology.spines + self.topology.leaves
+        all_devices = self.topology.spines.devices + self.topology.leaves.devices
         valid_hostnames = {device.hostname for device in all_devices}
 
         for device in all_devices:
@@ -213,7 +225,7 @@ class FabricDataModel(BaseModel):
         Returns:
             FabricDataModel: The validated model.
         """
-        all_devices = self.topology.spines + self.topology.leaves
+        all_devices = self.topology.spines.devices + self.topology.leaves.devices
         tracked_ipv4s: dict[IPv4Interface, str] = {}  # IP -> device.interface
 
         for device in all_devices:
@@ -249,7 +261,7 @@ class FabricDataModel(BaseModel):
         Returns:
             FabricDataModel: The validated model.
         """
-        all_devices = self.topology.spines + self.topology.leaves
+        all_devices = self.topology.spines.devices + self.topology.leaves.devices
 
         for device in all_devices:
             for interface in device.interfaces:

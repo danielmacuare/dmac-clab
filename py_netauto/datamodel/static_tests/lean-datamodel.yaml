@@ -25,53 +25,60 @@ fabric_asns:
   l5: 65005
 
 topology:
+  platform: arista_eos
+  ecmp_maximum_paths: 64
+  bgp_maximum_routes: 12000
   spines:
-    - hostname: s1
-      interfaces:
-        - name: Management0
-          ipv4: 172.100.100.121/24
-          ipv6: 2001:172:100:100::121/64
-        - name: Loopback0
-          ipv4: 10.255.0.1/32
-        - name: Ethernet1
-          ipv4: 10.254.1.0/31
-          remote_device: l1
-        - name: Ethernet2
-          ipv4: 10.254.1.2/31
-          remote_device: l2
-        - name: Ethernet3
-          ipv4: 10.254.1.4/31
-          remote_device: l3
-        - name: Ethernet4
-          ipv4: 10.254.1.6/31
-          remote_device: l4
-        - name: Ethernet5
-          ipv4: 10.254.1.8/31
-          remote_device: l5
-    - hostname: s2
-      interfaces:
-        - name: Management0
-          ipv4: 172.100.100.122/24
-          ipv6: 2001:172:100:100::122/64
-        - name: Loopback0
-          ipv4: 10.255.0.2/32
-        - name: Ethernet1
-          ipv4: 10.254.2.0/31
-          remote_device: l1
-        - name: Ethernet2
-          ipv4: 10.254.2.2/31
-          remote_device: l2
-        - name: Ethernet3
-          ipv4: 10.254.2.4/31
-          remote_device: l3
-        - name: Ethernet4
-          ipv4: 10.254.2.6/31
-          remote_device: l4
-        - name: Ethernet5
-          ipv4: 10.254.2.8/31
-          remote_device: l5
+    nornir_group: spine_group
+    devices:
+      - hostname: s1
+        interfaces:
+          - name: Management0
+            ipv4: 172.100.100.121/24
+            ipv6: 2001:172:100:100::121/64
+          - name: Loopback0
+            ipv4: 10.255.0.1/32
+          - name: Ethernet1
+            ipv4: 10.254.1.0/31
+            remote_device: l1
+          - name: Ethernet2
+            ipv4: 10.254.1.2/31
+            remote_device: l2
+          - name: Ethernet3
+            ipv4: 10.254.1.4/31
+            remote_device: l3
+          - name: Ethernet4
+            ipv4: 10.254.1.6/31
+            remote_device: l4
+          - name: Ethernet5
+            ipv4: 10.254.1.8/31
+            remote_device: l5
+      - hostname: s2
+        interfaces:
+          - name: Management0
+            ipv4: 172.100.100.122/24
+            ipv6: 2001:172:100:100::122/64
+          - name: Loopback0
+            ipv4: 10.255.0.2/32
+          - name: Ethernet1
+            ipv4: 10.254.2.0/31
+            remote_device: l1
+          - name: Ethernet2
+            ipv4: 10.254.2.2/31
+            remote_device: l2
+          - name: Ethernet3
+            ipv4: 10.254.2.4/31
+            remote_device: l3
+          - name: Ethernet4
+            ipv4: 10.254.2.6/31
+            remote_device: l4
+          - name: Ethernet5
+            ipv4: 10.254.2.8/31
+            remote_device: l5
 
   leaves:
+    nornir_group: leaf_group
+    devices:
     - hostname: l1
       interfaces:
         - name: Management0

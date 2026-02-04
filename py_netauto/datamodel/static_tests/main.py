@@ -74,11 +74,11 @@ def test_topology(fabric: FabricDataModel) -> bool:
         ValueError: If topology validation fails.
     """
     print("\n[TEST] Topology Validation")
-    print(f"  Spines: {len(fabric.topology.spines)}")
-    print(f"  Leaves: {len(fabric.topology.leaves)}")
+    print(f"  Spines: {len(fabric.topology.spines.devices)}")
+    print(f"  Leaves: {len(fabric.topology.leaves.devices)}")
 
     # Verify each spine has required fields
-    for spine in fabric.topology.spines:
+    for spine in fabric.topology.spines.devices:
         if not spine.hostname.startswith("s"):
             msg = f"Spine {spine.hostname} invalid"
             raise ValueError(msg)
@@ -90,7 +90,7 @@ def test_topology(fabric: FabricDataModel) -> bool:
             raise ValueError(msg)
 
     # Verify each leaf has required fields
-    for leaf in fabric.topology.leaves:
+    for leaf in fabric.topology.leaves.devices:
         if not leaf.hostname.startswith("l"):
             msg = f"Leaf {leaf.hostname} invalid"
             raise ValueError(msg)
@@ -121,7 +121,7 @@ def test_devices(fabric: FabricDataModel) -> bool:
     """
     print("\n[TEST] Device Validation")
 
-    all_devices = fabric.topology.spines + fabric.topology.leaves
+    all_devices = fabric.topology.spines.devices + fabric.topology.leaves.devices
     print(f"  Total devices: {len(all_devices)}")
 
     for device in all_devices:
@@ -177,7 +177,7 @@ def test_interfaces(fabric: FabricDataModel) -> bool:
     """
     print("\n[TEST] Interface Validation")
 
-    all_devices = fabric.topology.spines + fabric.topology.leaves
+    all_devices = fabric.topology.spines.devices + fabric.topology.leaves.devices
     total_interfaces = 0
 
     for device in all_devices:
@@ -271,7 +271,7 @@ def test_interface_descriptions(fabric: FabricDataModel) -> bool:
     """
     print("\n[TEST] Interface Description Computed Field")
 
-    all_devices = fabric.topology.spines + fabric.topology.leaves
+    all_devices = fabric.topology.spines.devices + fabric.topology.leaves.devices
     tested_types = set()
 
     for device in all_devices:
@@ -300,7 +300,7 @@ def test_mgmt_vrf(fabric: FabricDataModel) -> bool:
     """
     print("\n[TEST] Interface MGMT VRF Computed Field")
 
-    all_devices = fabric.topology.spines + fabric.topology.leaves
+    all_devices = fabric.topology.spines.devices + fabric.topology.leaves.devices
     mgmt_count = 0
     non_mgmt_count = 0
 
@@ -346,7 +346,7 @@ def test_remote_interface(fabric: FabricDataModel) -> bool:
     """
     print("\n[TEST] Interface remote_interface Computed Field")
 
-    all_devices = fabric.topology.spines + fabric.topology.leaves
+    all_devices = fabric.topology.spines.devices + fabric.topology.leaves.devices
     p2p_count = 0
     tested_links = []
 
@@ -395,7 +395,7 @@ def test_remote_device_references(fabric: FabricDataModel) -> bool:
     """
     print("\n[TEST] Remote Device Reference Validation")
 
-    all_devices = fabric.topology.spines + fabric.topology.leaves
+    all_devices = fabric.topology.spines.devices + fabric.topology.leaves.devices
     p2p_count = 0
 
     for device in all_devices:
@@ -423,7 +423,7 @@ def test_unique_ipv4_addresses(fabric: FabricDataModel) -> bool:
     """
     print("\n[TEST] Unique IPv4 Address Validation")
 
-    all_devices = fabric.topology.spines + fabric.topology.leaves
+    all_devices = fabric.topology.spines.devices + fabric.topology.leaves.devices
     tracked_ipv4s: dict[str, str] = {}
     total_ips = 0
 
@@ -459,7 +459,7 @@ def test_required_interfaces(fabric: FabricDataModel) -> bool:
     """
     print("\n[TEST] Required Interfaces Validation")
 
-    all_devices = fabric.topology.spines + fabric.topology.leaves
+    all_devices = fabric.topology.spines.devices + fabric.topology.leaves.devices
     loopback0_count = 0
     loopback1_count = 0
 
@@ -492,7 +492,7 @@ def test_ip_pool_allocation(fabric: FabricDataModel) -> bool:
     """
     print("\n[TEST] IP Pool Allocation Validation")
 
-    all_devices = fabric.topology.spines + fabric.topology.leaves
+    all_devices = fabric.topology.spines.devices + fabric.topology.leaves.devices
     pool_counts = {"mgmt": 0, "lo0": 0, "lo1": 0, "p2p": 0}
 
     for device in all_devices:
@@ -614,8 +614,17 @@ def _serialize_fabric_to_dict(fabric: FabricDataModel) -> dict:
         },
         "fabric_asns": fabric.fabric_asns,
         "topology": {
-            "spines": [serialize_device(spine) for spine in fabric.topology.spines],
-            "leaves": [serialize_device(leaf) for leaf in fabric.topology.leaves],
+            "platform": fabric.topology.platform,
+            "ecmp_maximum_paths": fabric.topology.ecmp_maximum_paths,
+            "bgp_maximum_routes": fabric.topology.bgp_maximum_routes,
+            "spines": {
+                "nornir_group": fabric.topology.spines.nornir_group,
+                "devices": [serialize_device(spine) for spine in fabric.topology.spines.devices],
+            },
+            "leaves": {
+                "nornir_group": fabric.topology.leaves.nornir_group,
+                "devices": [serialize_device(leaf) for leaf in fabric.topology.leaves.devices],
+            },
         },
     }
 
@@ -638,7 +647,7 @@ def _test_yaml_loader(lean_datamodel_path: Path) -> bool:
         msg = f"Expected fabric_name 'ceos_clab_clos', got '{fabric_yaml.fabric_name}'"
         raise ValueError(msg)
     print(
-        f"    ✅ Loaded {len(fabric_yaml.topology.spines)} spines, {len(fabric_yaml.topology.leaves)} leaves from YAML",
+        f"    ✅ Loaded {len(fabric_yaml.topology.spines.devices)} spines, {len(fabric_yaml.topology.leaves.devices)} leaves from YAML",
     )
     return True
 
@@ -667,8 +676,8 @@ def _test_json_loader(fabric_yaml: FabricDataModel) -> bool:
             msg = f"Expected fabric_name 'ceos_clab_clos', got '{fabric_json.fabric_name}'"
             raise ValueError(msg)
         print(
-            f"    ✅ Loaded {len(fabric_json.topology.spines)} spines, "
-            f"{len(fabric_json.topology.leaves)} leaves from JSON",
+            f"    ✅ Loaded {len(fabric_json.topology.spines.devices)} spines, "
+            f"{len(fabric_json.topology.leaves.devices)} leaves from JSON",
         )
     finally:
         json_path.unlink()  # Clean up temp file
@@ -842,8 +851,8 @@ def export_to_json(fabric: FabricDataModel, output_path: Path) -> None:
         },
         "fabric_asns": fabric.fabric_asns,
         "topology": {
-            "spines": [serialize_device(spine) for spine in fabric.topology.spines],
-            "leaves": [serialize_device(leaf) for leaf in fabric.topology.leaves],
+            "spines": [serialize_device(spine) for spine in fabric.topology.spines.devices],
+            "leaves": [serialize_device(leaf) for leaf in fabric.topology.leaves.devices],
         },
     }
 
