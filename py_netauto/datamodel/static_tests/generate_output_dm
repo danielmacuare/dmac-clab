@@ -1,0 +1,13 @@
+
+#!/usr/bin/env bash
+
+# 1. Define variables first
+export INPUT_YAML_DM="/home/dmac/repos/dmac-clab/py_netauto/datamodel/static_tests/input-datamodel.yaml"
+export OUTPUT_FOLDER="/home/dmac/repos/dmac-clab/py_netauto/datamodel/static_tests"
+
+# 2. Run the commands
+py-netauto datamodel export "$INPUT_YAML_DM" --output "$OUTPUT_FOLDER/output-datamodel.yml" --format yaml
+
+py-netauto datamodel export "$INPUT_YAML_DM" --output "$OUTPUT_FOLDER/output-datamodel.json" --format json
+
+py-netauto datamodel export "$INPUT_YAML_DM" --output "$OUTPUT_FOLDER/output-datamodel-schema.json" --format json-schema

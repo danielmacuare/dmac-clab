@@ -1,7 +1,7 @@
 """Main test entry point for FabricDataModel validation.
 
 This module serves as the central testing point for the py_netauto datamodel.
-It loads the lean datamodel, validates all models, and exports the complete
+It loads the input datamodel, validates all models, and exports the complete
 fabric configuration including computed fields to JSON.
 """
 
@@ -27,11 +27,11 @@ def _raise_test_failure(expected_exception: str) -> None:
     raise ValueError(msg)
 
 
-def load_lean_datamodel(yaml_path: Path) -> dict:
-    """Load lean datamodel from YAML file.
+def load_input_datamodel(yaml_path: Path) -> dict:
+    """Load input datamodel from YAML file.
 
     Args:
-        yaml_path: Path to the lean datamodel YAML file.
+        yaml_path: Path to the input datamodel YAML file.
 
     Returns:
         Dictionary containing the parsed YAML data.
@@ -629,11 +629,11 @@ def _serialize_fabric_to_dict(fabric: FabricDataModel) -> dict:
     }
 
 
-def _test_yaml_loader(lean_datamodel_path: Path) -> bool:
+def _test_yaml_loader(input_datamodel_path: Path) -> bool:
     """Test load_from_yaml function.
 
     Args:
-        lean_datamodel_path: Path to test YAML file.
+        input_datamodel_path: Path to test YAML file.
 
     Returns:
         True if test passes.
@@ -642,7 +642,7 @@ def _test_yaml_loader(lean_datamodel_path: Path) -> bool:
         ValueError: If test fails.
     """
     print("  Testing load_from_yaml()...")
-    fabric_yaml = load_from_yaml(lean_datamodel_path)
+    fabric_yaml = load_from_yaml(input_datamodel_path)
     if fabric_yaml.fabric_name != "ceos_clab_clos":
         msg = f"Expected fabric_name 'ceos_clab_clos', got '{fabric_yaml.fabric_name}'"
         raise ValueError(msg)
@@ -685,11 +685,11 @@ def _test_json_loader(fabric_yaml: FabricDataModel) -> bool:
     return True
 
 
-def _test_auto_detection(lean_datamodel_path: Path, fabric_yaml: FabricDataModel) -> bool:
+def _test_auto_detection(input_datamodel_path: Path, fabric_yaml: FabricDataModel) -> bool:
     """Test load_fabric auto-detection.
 
     Args:
-        lean_datamodel_path: Path to test YAML file.
+        input_datamodel_path: Path to test YAML file.
         fabric_yaml: Fabric model for JSON test.
 
     Returns:
@@ -699,7 +699,7 @@ def _test_auto_detection(lean_datamodel_path: Path, fabric_yaml: FabricDataModel
         ValueError: If test fails.
     """
     print("  Testing load_fabric() auto-detection...")
-    fabric_auto_yaml = load_fabric(lean_datamodel_path)
+    fabric_auto_yaml = load_fabric(input_datamodel_path)
     if fabric_auto_yaml.fabric_name != "ceos_clab_clos":
         msg = f"Expected fabric_name 'ceos_clab_clos', got '{fabric_auto_yaml.fabric_name}'"
         raise ValueError(msg)
@@ -760,14 +760,14 @@ def _test_error_handling() -> bool:
     return True
 
 
-def test_data_loaders(lean_datamodel_path: Path) -> bool:
+def test_data_loaders(input_datamodel_path: Path) -> bool:
     """Test data loader functions.
 
     Verifies that load_from_yaml, load_from_json, and load_fabric
     correctly load and validate fabric configurations.
 
     Args:
-        lean_datamodel_path: Path to the test YAML file.
+        input_datamodel_path: Path to the test YAML file.
 
     Returns:
         True if all loader tests pass.
@@ -778,14 +778,14 @@ def test_data_loaders(lean_datamodel_path: Path) -> bool:
     print("\n[TEST] Data Loaders")
 
     # Test 1: load_from_yaml
-    _test_yaml_loader(lean_datamodel_path)
-    fabric_yaml = load_from_yaml(lean_datamodel_path)
+    _test_yaml_loader(input_datamodel_path)
+    fabric_yaml = load_from_yaml(input_datamodel_path)
 
     # Test 2: Export to JSON and load with load_from_json
     _test_json_loader(fabric_yaml)
 
     # Test 3: load_fabric with auto-detection
-    _test_auto_detection(lean_datamodel_path, fabric_yaml)
+    _test_auto_detection(input_datamodel_path, fabric_yaml)
 
     # Test 4 & 5: Error handling
     _test_error_handling()
@@ -794,17 +794,18 @@ def test_data_loaders(lean_datamodel_path: Path) -> bool:
     return True
 
 
-def export_to_json(fabric: FabricDataModel, output_path: Path) -> None:
-    """Export FabricDataModel to JSON including computed fields.
+def _serialize_fabric_dict(fabric: FabricDataModel) -> dict:
+    """Serialize FabricDataModel to dictionary including computed fields.
 
     Handles computed fields that may not be available on all device types
     (e.g., VTEP only on leaves, not spines).
 
     Args:
         fabric: Validated FabricDataModel instance.
-        output_path: Path where the JSON file will be written.
+
+    Returns:
+        Dictionary representation of the fabric with all computed fields.
     """
-    print(f"\n[EXPORT] Saving to {output_path}")
 
     # Build export dict manually to handle computed fields gracefully
     def serialize_device(device) -> dict:
@@ -835,7 +836,7 @@ def export_to_json(fabric: FabricDataModel, output_path: Path) -> None:
 
         return device_dict
 
-    fabric_dict = {
+    return {
         "schema_version": fabric.schema_version,
         "schema_description": fabric.schema_description,
         "fabric_name": fabric.fabric_name,
@@ -851,14 +852,73 @@ def export_to_json(fabric: FabricDataModel, output_path: Path) -> None:
         },
         "fabric_asns": fabric.fabric_asns,
         "topology": {
-            "spines": [serialize_device(spine) for spine in fabric.topology.spines.devices],
-            "leaves": [serialize_device(leaf) for leaf in fabric.topology.leaves.devices],
+            "platform": fabric.topology.platform,
+            "ecmp_maximum_paths": fabric.topology.ecmp_maximum_paths,
+            "bgp_maximum_routes": fabric.topology.bgp_maximum_routes,
+            "spines": {
+                "nornir_group": fabric.topology.spines.nornir_group,
+                "devices": [serialize_device(spine) for spine in fabric.topology.spines.devices],
+            },
+            "leaves": {
+                "nornir_group": fabric.topology.leaves.nornir_group,
+                "devices": [serialize_device(leaf) for leaf in fabric.topology.leaves.devices],
+            },
         },
     }
+
+
+def export_to_yaml(fabric: FabricDataModel, output_path: Path) -> None:
+    """Export FabricDataModel to YAML including computed fields.
+
+    Args:
+        fabric: Validated FabricDataModel instance.
+        output_path: Path where the YAML file will be written.
+    """
+    print(f"\n[EXPORT] Saving YAML to {output_path}")
+
+    fabric_dict = _serialize_fabric_dict(fabric)
+
+    # Write to YAML file with pretty formatting
+    with output_path.open("w") as f:
+        yaml.dump(fabric_dict, f, default_flow_style=False, sort_keys=False, indent=2)
+
+    print("  ✅ Exported successfully")
+    print(f"  File size: {output_path.stat().st_size} bytes")
+
+
+def export_to_json(fabric: FabricDataModel, output_path: Path) -> None:
+    """Export FabricDataModel to JSON including computed fields.
+
+    Args:
+        fabric: Validated FabricDataModel instance.
+        output_path: Path where the JSON file will be written.
+    """
+    print(f"\n[EXPORT] Saving JSON to {output_path}")
+
+    fabric_dict = _serialize_fabric_dict(fabric)
 
     # Write to JSON file with pretty formatting
     with output_path.open("w") as f:
         json.dump(fabric_dict, f, indent=2, default=str)
+
+    print("  ✅ Exported successfully")
+    print(f"  File size: {output_path.stat().st_size} bytes")
+
+
+def export_to_json_schema(output_path: Path) -> None:
+    """Export FabricDataModel JSON Schema.
+
+    Args:
+        output_path: Path where the JSON Schema file will be written.
+    """
+    print(f"\n[EXPORT] Saving JSON Schema to {output_path}")
+
+    # Generate JSON Schema from the Pydantic model
+    schema = FabricDataModel.model_json_schema()
+
+    # Write to JSON Schema file with pretty formatting
+    with output_path.open("w") as f:
+        json.dump(schema, f, indent=2, default=str)
 
     print("  ✅ Exported successfully")
     print(f"  File size: {output_path.stat().st_size} bytes")
@@ -872,13 +932,15 @@ def main() -> None:
 
     # Define paths
     base_dir = Path(__file__).parent
-    lean_datamodel_path = base_dir / "lean-datamodel.yaml"
-    output_path = base_dir / "fabric-export.json"
+    input_datamodel_path = base_dir / "input-datamodel.yaml"
+    output_yaml_path = base_dir / "output-datamodel.yml"
+    output_json_path = base_dir / "output-datamodel.json"
+    output_schema_path = base_dir / "output-datamodel-schema.json"
 
-    print(f"\nLoading lean datamodel: {lean_datamodel_path}")
+    print(f"\nLoading input datamodel: {input_datamodel_path}")
 
     # Load and validate
-    data = load_lean_datamodel(lean_datamodel_path)
+    data = load_input_datamodel(input_datamodel_path)
     print(f"  Schema: {data['schema_version']} - {data['schema_description']}")
     print(f"  Fabric: {data['fabric_name']}")
 
@@ -898,10 +960,12 @@ def main() -> None:
     all_tests_passed &= test_required_interfaces(fabric)
     all_tests_passed &= test_ip_pool_allocation(fabric)
     all_tests_passed &= test_network_config(fabric)
-    all_tests_passed &= test_data_loaders(lean_datamodel_path)
+    all_tests_passed &= test_data_loaders(input_datamodel_path)
 
-    # Export to JSON
-    export_to_json(fabric, output_path)
+    # Export to all formats
+    export_to_yaml(fabric, output_yaml_path)
+    export_to_json(fabric, output_json_path)
+    export_to_json_schema(output_schema_path)
 
     # Summary
     print("\n" + "=" * 60)
@@ -909,7 +973,10 @@ def main() -> None:
         print("✅ ALL TESTS PASSED")
     else:
         print("❌ SOME TESTS FAILED")
-    print(f"Output: {output_path}")
+    print("\nOutput files:")
+    print(f"  - {output_yaml_path}")
+    print(f"  - {output_json_path}")
+    print(f"  - {output_schema_path}")
     print("=" * 60)
 
 
