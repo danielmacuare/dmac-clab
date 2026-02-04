@@ -1,73 +1,96 @@
 
+# py_netauto
+
 A Python package for network automation utilities, designed for use with Containerlab network topologies and multi-vendor network device management.
-
-## TO-DO
-- Add tests for BGP Neighborship
-- Create a script to thsoot the variables received by each device on each task. 
-    - How Nornir merges all the vars from hosts, groups and defaults and pass them to the task? 
-
-
-## Done
-- Replace basedpyright with ty
--Fix scrpali_conifg_device commit workflow
-    - I need to add an option to only diff and another one to push config.
-    - When diffing the config, the config session needs to be closed
-    - Check what error do you get back when the device can't allow any more config sessions to be created.
-        - When you see that error, then create a workflow to delete all the config sessions.
-- Add IPv6 address to the Management interface
-- Create a script to thsoot inventory, to understand where all the vars and values are inherited from (Host, groud, defaults, etc) for each device. Also include the variables injected from the env file. 
-- Configure Leaf5 with scrapli. (Done)
-- Test that passwords are working from the env var and remove them from the groups or default vars (Done)
-- password from the env file is not working. Test this by removing the password from the defaults.yml file and only using the password comning from the env file
-- Use nornir-scrapli-cfg to push config (idempotent config replace)
-    - Contuinue tshooting why pushing to leafe 5 won't work. I need to update second_auth. Before commiting (replace) I need to make sure I'm updating the template to reflect what containerlab pushes to the devices.
 
 ## Overview
 
-`py_netauto` provides a set of tools and utilities for network automation tasks, including:
+`py_netauto` provides a comprehensive set of tools and utilities for network automation tasks, including:
 
+- **Pydantic Data Models** for fabric configuration validation and management
+- **CLI Commands** for rendering, pushing, validating, and exporting network configurations
 - **Environment-based configuration management** using Pydantic settings
 - **Nornir integration** with flexible initialization options
 - **Configuration rendering** using Jinja2 templates
-- **Network device inventory management**
 - **Multi-vendor support** for network automation workflows
 
 ## Features
 
+### 🏗️ Fabric Data Models
+- **Pydantic-based validation** for network fabric configurations
+- **Computed fields** for automatic router ID, VTEP IP, and ASN assignment
+- **JSON Schema export** with examples for API documentation
+- **Multi-format export** (JSON, YAML, JSON Schema, Python dict)
+
 ### 🔧 Configuration Management
-- Environment variable-based configuration with `.env` file support
-- Automatic path resolution (relative to project root or absolute)
-- Pydantic validation for configuration settings
-- Flexible Nornir initialization (config file or individual inventory files)
+- **Environment variable-based configuration** with `.env` file support
+- **Automatic path resolution** (relative to project root or absolute)
+- **Pydantic validation** for configuration settings
+- **Flexible Nornir initialization** (config file or individual inventory files)
 
-### 📋 Inventory Management
-- Host listing and inventory exploration
-- Support for Nornir SimpleInventory plugin
-- Device role-based organization
+### 📋 Network Operations
+- **Configuration rendering** from Jinja2 templates
+- **Configuration deployment** to network devices (dry-run and commit modes)
+- **Session management** for network device configuration sessions
+- **Device filtering** with flexible filter expressions
 
-### 🎨 Template Rendering
-- Jinja2-based configuration template rendering
-- Device role-specific templates (leaf, spine, host, default)
-- Automated configuration file generation
+### 🌐 Multi-vendor Support
+- **Nokia SR Linux**, **Arista cEOS**, and **Juniper vJunos** devices
+- **Containerlab integration** with auto-generated inventories
+- **Role-based configuration** (spine, leaf, host templates)
 
 ## Quick Start
 
 ### 1. Environment Setup
+
+```bash
+# Activate virtual environment (once per session)
+source .venv/bin/activate
+
+# Install dependencies
+uv sync
+```
 
 Copy the example configuration:
 ```bash
 cp .env.example .env
 ```
 
-Customize settings for your lab environment:
+### 2. CLI Commands
+
+#### Data Model Operations
 ```bash
-# .env
-NORNIR_BASE_PATH="clab/arista/dmac/evpn-vxlan-l3gw/nornir"
-JINJA_TEMPLATES_FOLDER_PATH="${NORNIR_BASE_PATH}/templates"
-GENERATED_CONFIGS_FOLDER_PATH="${NORNIR_BASE_PATH}/output"
+# Validate a fabric data model
+py-netauto datamodel validate fabric.yml
+
+# Export to different formats
+py-netauto datamodel export fabric.yml --format json --output fabric.json
+py-netauto datamodel export fabric.yml --format yaml --pretty
+py-netauto datamodel export fabric.yml --format json-schema --output schema.json
 ```
 
-### 2. Basic Usage
+#### Configuration Management
+```bash
+# Render device configurations from templates
+py-netauto render --filter role=leaf --verbose
+
+# Push configurations (dry-run by default)
+py-netauto push --filter role=spine --dry-run
+
+# Commit configurations to devices
+py-netauto push --filter name=leaf1 --commit
+```
+
+#### Session Management
+```bash
+# List active configuration sessions
+py-netauto sessions list
+
+# Abort all pending sessions
+py-netauto sessions abort
+```
+
+### 3. Python API Usage
 
 #### Initialize Nornir
 ```python
@@ -77,20 +100,60 @@ from py_netauto.utils.nornir_helpers import initialize_nornir
 nr = initialize_nornir()
 ```
 
-#### List Inventory Hosts
+#### Work with Data Models
 ```python
-from py_netauto.nornir_tasks.lists_hosts import main
+from py_netauto.datamodel import load_fabric
 
-# List all hosts in inventory
-main()
+# Load and validate fabric data model
+fabric = load_fabric("fabric.yml")
+
+# Access computed fields
+for device in fabric.topology.spines:
+    print(f"Device: {device.hostname}, ASN: {device.fabric_asn}, Router ID: {device.router_id}")
 ```
 
-#### Render Device Configurations
-```python
-from py_netauto.nornir_tasks.render_config import main
+## CLI Command Reference
 
-# Render configurations for all devices
-main()
+### Main Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `render` | Render device configurations from Jinja2 templates | `py-netauto render --filter role=leaf` |
+| `push` | Push configurations to network devices | `py-netauto push --filter name=spine1 --commit` |
+| `sessions` | Manage configuration sessions on devices | `py-netauto sessions list` |
+| `datamodel` | Fabric data model validation and export | `py-netauto datamodel validate fabric.yml` |
+
+### Data Model Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `datamodel validate` | Validate fabric data model file | `py-netauto datamodel validate fabric.yml --verbose` |
+| `datamodel export` | Export to various formats | `py-netauto datamodel export fabric.yml --format yaml` |
+
+### Available Export Formats
+
+| Format | Description | Example |
+|--------|-------------|---------|
+| `json` | JSON with pretty-printing | `--format json --pretty` |
+| `yaml` | YAML with proper formatting | `--format yaml --pretty` |
+| `json-schema` | JSON Schema for API docs | `--format json-schema` |
+| `python` | Python dictionary (stdout) | `--format python` |
+
+*Coming soon: `csv`, `nornir`*
+
+### Filter Expressions
+
+Use flexible filtering for device selection:
+
+```bash
+# Single filter
+py-netauto render --filter role=leaf
+
+# Multiple filters (AND)
+py-netauto push --filter role=spine,name=spine1
+
+# OR filters
+py-netauto render --filter 'role=leaf|spine'
 ```
 
 ## Package Structure
@@ -99,14 +162,30 @@ main()
 py_netauto/
 ├── __init__.py
 ├── config.py                  # Environment-based configuration
-├── utils/
+├── datamodel/                 # Pydantic data models
+│   ├── device.py             # Device and interface models
+│   ├── fabric.py             # Root fabric data model
+│   ├── network.py            # Network infrastructure models
+│   ├── topology.py           # Topology structure models
+│   ├── loaders.py            # Data loading utilities
+│   └── exporters/            # Export functionality
+│       ├── json_exporter.py
+│       ├── yaml_exporter.py
+│       └── json_schema_exporter.py
+├── cli/                      # CLI commands
 │   ├── __init__.py
-│   ├── inventory.py           # Inventory management utilities
-│   └── nornir_helpers.py      # Nornir initialization helpers
+│   └── commands/
+│       ├── datamodel.py      # Data model CLI commands
+│       ├── render.py         # Configuration rendering
+│       ├── push.py           # Configuration deployment
+│       └── sessions.py       # Session management
+├── utils/
+│   ├── nornir_helpers.py     # Nornir initialization helpers
+│   └── debug_inventory.py    # Inventory debugging utilities
 └── nornir_tasks/
-    ├── __init__.py
-    ├── lists_hosts.py         # Host listing tasks
-    └── render_config.py       # Configuration rendering tasks
+    ├── lists_hosts.py        # Host listing tasks
+    ├── render_config.py      # Configuration rendering tasks
+    └── scrapli_config_device.py  # Device configuration tasks
 ```
 
 ## Configuration
@@ -120,38 +199,10 @@ All paths can be relative (to project root where `pyproject.toml` is located) or
 | `NORNIR_BASE_PATH` | Base directory for Nornir project files | `configs/nornir` |
 | `NORNIR_CONFIG_FILE_PATH` | Path to Nornir YAML configuration file (optional) | `None` |
 | `JINJA_TEMPLATES_FOLDER_PATH` | Directory containing Jinja2 templates | `${NORNIR_BASE_PATH}/templates` |
-| `GENERATED_CONFIGS_FOLDER_PATH` | Output directory for rendered configurations | `${NORNIR_BASE_PATH}/templates` |
+| `GENERATED_CONFIGS_FOLDER_PATH` | Output directory for rendered configurations | `${NORNIR_BASE_PATH}/outputs` |
 | `NORNIR_INVENTORY_HOSTS_PATH` | Path to Nornir hosts inventory file | `${NORNIR_BASE_PATH}/inventory/hosts.yml` |
 | `NORNIR_INVENTORY_GROUPS_PATH` | Path to Nornir groups inventory file | `${NORNIR_BASE_PATH}/inventory/groups.yml` |
 | `NORNIR_INVENTORY_DEFAULTS_PATH` | Path to Nornir defaults inventory file | `${NORNIR_BASE_PATH}/inventory/defaults.yml` |
-
-#### Configuration Modes
-
-The package supports two configuration modes:
-
-1. **Config File Mode**: Set `NORNIR_CONFIG_FILE_PATH` to use a single Nornir configuration file
-2. **Individual Files Mode**: Leave `NORNIR_CONFIG_FILE_PATH` unset to use separate inventory files
-
-#### Example Configuration
-
-```bash
-# .env file example
-
-# Base path for your Nornir project
-NORNIR_BASE_PATH="clab/arista/dmac/evpn-vxlan-l3gw/nornir"
-
-# Template and output directories (using variable substitution)
-JINJA_TEMPLATES_FOLDER_PATH="${NORNIR_BASE_PATH}/templates"
-GENERATED_CONFIGS_FOLDER_PATH="${NORNIR_BASE_PATH}/output"
-
-# Option 1: Use a single Nornir config file
-# NORNIR_CONFIG_FILE_PATH="${NORNIR_BASE_PATH}/config.yml"
-
-# Option 2: Use individual inventory files (default)
-NORNIR_INVENTORY_HOSTS_PATH="${NORNIR_BASE_PATH}/inventory/hosts.yml"
-NORNIR_INVENTORY_GROUPS_PATH="${NORNIR_BASE_PATH}/inventory/groups.yml"
-NORNIR_INVENTORY_DEFAULTS_PATH="${NORNIR_BASE_PATH}/inventory/defaults.yml"
-```
 
 ### Configuration Validation
 
@@ -162,36 +213,52 @@ python -m py_netauto.config
 
 This will display all resolved paths and validate your configuration.
 
-## Template System
+## Data Model Features
 
-### Supported Device Roles
+### Computed Fields
 
-The package supports role-based template rendering:
+The data models automatically compute important network parameters:
 
-- **leaf**: Uses `leaves.j2` template
-- **spine**: Uses `spines.j2` template  
-- **host**: Uses `hosts.j2` template
-- **default**: Uses `defaults.j2` template (fallback)
+- **Device Role**: Automatically determined from hostname (s1-s8 = spine, l1-l128 = leaf)
+- **Router ID**: Extracted from Loopback0 interface IP address
+- **VTEP IP**: Extracted from Loopback1 interface IP address (leaf devices only)
+- **Fabric ASN**: BGP ASN assignment based on device role and fabric mapping
+- **Interface Descriptions**: Auto-generated based on interface type and connectivity
 
-### Template Location
+### Validation Features
 
-Templates are stored in the configured templates directory (default: `configs/nornir/templates/`).
+- **Hostname validation**: Enforces naming conventions (s1-s8, l1-l128)
+- **IP uniqueness**: Ensures no duplicate IP addresses across the fabric
+- **Pool allocation**: Validates IPs are within designated pools
+- **Remote device references**: Verifies all remote_device references exist
+- **Required interfaces**: Ensures Loopback0 (all devices) and Loopback1 (leaves) exist
 
-## Command Line Usage
+### Example Data Model
 
-### List Hosts
-```bash
-python -m py_netauto.nornir_tasks.lists_hosts
-```
-
-### Render Configurations
-```bash
-python -m py_netauto.nornir_tasks.render_config
-```
-
-### Verify Configuration
-```bash
-python -m py_netauto.config
+```yaml
+schema_version: "1.0.1"
+fabric_name: "dc1-fabric"
+mgmt_vrf: "MGMT"
+fabric_asns:
+  spines: 64600
+  l1: 65001
+  l2: 65002
+topology:
+  spines:
+    - hostname: s1
+      interfaces:
+        - name: Loopback0
+          ipv4: 10.255.0.1/32
+        - name: Ethernet1
+          ipv4: 10.254.1.0/31
+          remote_device: l1
+  leaves:
+    - hostname: l1
+      interfaces:
+        - name: Loopback0
+          ipv4: 10.255.0.11/32
+        - name: Loopback1
+          ipv4: 10.255.1.11/32
 ```
 
 ## Integration with Containerlab
@@ -201,6 +268,7 @@ This package is designed to work seamlessly with Containerlab topologies:
 1. **Auto-generated inventories**: Works with `ansible-inventory.yml` files generated by Containerlab
 2. **Multi-vendor support**: Compatible with Nokia SR Linux, Arista cEOS, and Juniper vJunos devices
 3. **Flexible configuration**: Adapts to different lab environments through environment variables
+4. **Template system**: Role-based templates for different device types
 
 ## Development
 
@@ -209,11 +277,13 @@ This package is designed to work seamlessly with Containerlab topologies:
 - Python 3.12+
 - Nornir 3.5+
 - Pydantic Settings 2.12+
+- Typer 0.15+ (CLI framework)
+- Rich 13.0+ (CLI formatting)
 - Jinja2 (via nornir-jinja2)
 
 ### Code Style
 
-This package follows Google-style docstrings and uses Ruff for linting and formatting. See the project's steering guidelines for detailed code style requirements.
+This package follows Google-style docstrings and uses Ruff for linting and formatting. See `AGENTS.md` for detailed development guidelines.
 
 ## Examples
 
@@ -228,25 +298,34 @@ from py_netauto.utils.nornir_helpers import initialize_nornir
 nr = initialize_nornir()
 ```
 
-### Using Config File Mode
+### Working with Data Models
 ```python
-import os
-# Use a single Nornir configuration file
-os.environ['NORNIR_CONFIG_FILE_PATH'] = 'clab/arista/dmac/evpn-vxlan-l3gw/nornir/config.yml'
+from py_netauto.datamodel import load_fabric
+from py_netauto.datamodel.exporters import export_json, export_yaml
 
-from py_netauto.utils.nornir_helpers import initialize_nornir
-nr = initialize_nornir()
+# Load fabric data model
+fabric = load_fabric("fabric.yml")
+
+# Export to different formats
+export_json(fabric, "fabric.json", pretty=True)
+export_yaml(fabric, "fabric.yaml", pretty=True)
+
+# Access computed fields
+for device in fabric.topology.leaves:
+    print(f"Leaf {device.hostname}: VTEP IP = {device.vtep_ipv4}")
 ```
 
-### Filtering Hosts by Role
-```python
-from py_netauto.utils.nornir_helpers import initialize_nornir
+### CLI Automation Examples
+```bash
+# Validate and export data model
+py-netauto datamodel validate fabric.yml --verbose
+py-netauto datamodel export fabric.yml --format json-schema --output api-schema.json
 
-nr = initialize_nornir()
+# Render configurations for specific devices
+py-netauto render --filter role=leaf --output-dir /tmp/configs
 
-# Filter spine devices
-spines = nr.filter(role="spine")
-print(f"Found {len(spines.inventory.hosts)} spine devices")
+# Deploy configurations with confirmation
+py-netauto push --filter name=spine1 --commit --verbose
 ```
 
 ## License
