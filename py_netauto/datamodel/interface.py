@@ -7,7 +7,7 @@ physical and logical interfaces with IPv4/IPv6 addressing.
 
 from ipaddress import IPv4Interface, IPv6Interface
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 
 class Interface(BaseModel):
@@ -36,6 +36,10 @@ class Interface(BaseModel):
         remote_interface (str | None): Returns the name of the reciprocal interface
             on the remote device for P2P links. None for non-P2P interfaces.
 
+    Field Validators:
+        validate_interface_name: Validates interface name matches vendor patterns
+            (Ethernet*, Loopback*, Management*).
+
     Attributes:
         name: Interface name (e.g., Ethernet1, Management0, Loopback0).
         ipv4: IPv4 address with prefix length.
@@ -44,8 +48,18 @@ class Interface(BaseModel):
     """
 
     name: str = Field(
-        description="Interface name (e.g., Ethernet1, Management0, Loopback0)",
-        examples=["Ethernet1", "Ethernet2", "Management0", "Loopback0", "Loopback1"],
+        description="Interface name (e.g., Ethernet1, Management0, Loopback0, GigabitEthernet0/0/1)",
+        examples=[
+            "Ethernet1",
+            "Ethernet2",
+            "Management0",
+            "Loopback0",
+            "Loopback1",
+            "GigabitEthernet0/0/1",
+            "TenGigabitEthernet1/0/1",
+            "Vlan100",
+            "Port-Channel1",
+        ],
     )
     ipv4: IPv4Interface = Field(
         description="IPv4 address with prefix length assigned to the interface (e.g., 10.254.1.0/31)",
@@ -73,7 +87,96 @@ class Interface(BaseModel):
     # Type list["Device"] to avoid circular dependency on imports since the Device class imports Interface
     _devices: list["Device"] | None = None  # noqa: F821
 
-    @computed_field
+    # FIELD VALIDATORS
+    @field_validator("name")
+    @classmethod
+    def validate_interface_name(cls, v: str) -> str:
+        """
+        Validate interface name matches vendor-specific patterns.
+
+        Ensures interface names follow standard naming conventions for
+        Arista and Cisco network devices. Only full interface names are
+        accepted (e.g., "Ethernet1" not "eth1", "GigabitEthernet0/0/1" not "Gi0/0/1").
+
+        Supported patterns:
+            Arista EOS:
+                - Ethernet: Ethernet1, Ethernet2, Ethernet1/1, etc.
+                - Management: Management0, Management1, etc.
+                - Loopback: Loopback0, Loopback1, Loopback100, etc.
+                - Vlan: Vlan10, Vlan100, Vlan4094, etc.
+                - Port-Channel: Port-Channel1, Port-Channel100, etc.
+                - Vxlan: Vxlan1
+
+            Cisco IOS/IOS-XE:
+                - GigabitEthernet: GigabitEthernet0/0/1, GigabitEthernet1/0/1, etc.
+                - TenGigabitEthernet: TenGigabitEthernet0/0/1, etc.
+                - FortyGigabitEthernet: FortyGigabitEthernet0/0/1, etc.
+                - HundredGigE: HundredGigE0/0/1, etc.
+                - Loopback: Loopback0, Loopback1, etc.
+                - Vlan: Vlan10, Vlan100, etc.
+                - Port-channel: Port-channel1, Port-channel100, etc.
+
+        Args:
+            v: Interface name string to validate.
+
+        Returns:
+            str: The validated interface name.
+
+        Raises:
+            ValueError: If interface name doesn't match any supported pattern
+                or uses abbreviated form (e.g., "Gi0/0/1" instead of "GigabitEthernet0/0/1").
+
+        Example:
+            >>> # Valid Arista interface names
+            >>> Interface(name="Ethernet1", ipv4="10.0.0.1/24")  # OK
+            >>> Interface(name="Management0", ipv4="192.168.1.1/24")  # OK
+            >>> Interface(name="Vlan100", ipv4="10.1.1.1/24")  # OK
+
+            >>> # Valid Cisco interface names
+            >>> Interface(name="GigabitEthernet0/0/1", ipv4="10.0.0.1/24")  # OK
+            >>> Interface(name="TenGigabitEthernet1/0/1", ipv4="10.0.0.1/24")  # OK
+
+            >>> # Invalid interface names (abbreviated forms)
+            >>> Interface(name="eth1", ipv4="10.0.0.1/24")  # Raises ValueError
+            >>> Interface(name="Gi0/0/1", ipv4="10.0.0.1/24")  # Raises ValueError
+            >>> Interface(name="Te1/0/1", ipv4="10.0.0.1/24")  # Raises ValueError
+        """
+        # Arista EOS interface prefixes
+        arista_prefixes = (
+            "Ethernet",
+            "Management",
+            "Loopback",
+            "Vlan",
+            "Port-Channel",
+            "Vxlan",
+        )
+
+        # Cisco IOS/IOS-XE interface prefixes (full names only, no abbreviations)
+        cisco_prefixes = (
+            "GigabitEthernet",
+            "TenGigabitEthernet",
+            "FortyGigabitEthernet",
+            "HundredGigE",
+            "TwentyFiveGigE",
+            "Port-channel",
+        )
+
+        # Combined valid prefixes
+        valid_prefixes = arista_prefixes + cisco_prefixes
+
+        if not v.startswith(valid_prefixes):
+            msg = (
+                f"Invalid interface name '{v}'. "
+                f"Interface name must use full form (no abbreviations) and start with one of:\n"
+                f"  Arista: {', '.join(arista_prefixes)}\n"
+                f"  Cisco: {', '.join(cisco_prefixes)}\n"
+                f"Examples: Ethernet1, GigabitEthernet0/0/1, Management0, Loopback0, Vlan100"
+            )
+            raise ValueError(msg)
+
+        return v
+
+    # COMPUTED FIELDS
     @property
     def description(self) -> str | None:
         """

@@ -7,7 +7,7 @@ data for a network fabric including topology, IP allocation, and ASN assignments
 
 from ipaddress import IPv4Interface
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .network import ReservedSupernets
 from .topology import Topology
@@ -33,6 +33,10 @@ class FabricDataModel(BaseModel):
             across the fabric topology.
         validate_ip_pool_allocation: Validates that all interface IPs are within
             their designated pools (management, loopback, P2P).
+
+    Field Validators:
+        validate_fabric_asns: Validates that all ASN values are within valid range
+            (1-4294967295 for 32-bit ASNs).
 
     Data Flow:
         1. Model initialization creates topology with all devices/interfaces
@@ -76,6 +80,50 @@ class FabricDataModel(BaseModel):
     topology: Topology = Field(
         description="Physical topology structure with all devices",
     )
+
+    # FIELD VALIDATORS
+    @field_validator("fabric_asns")
+    @classmethod
+    def validate_fabric_asns(cls, v: dict[str, int]) -> dict[str, int]:
+        """
+        Validate that all ASN values are within the valid 32-bit range.
+
+        BGP ASNs must be between 1 and 4294967295 (2^32 - 1). This validator
+        checks each ASN value in the fabric_asns dictionary and provides
+        clear error messages indicating which device/role has an invalid ASN.
+
+        Args:
+            v: Dictionary mapping device hostnames or roles to ASN values.
+
+        Returns:
+            dict[str, int]: The validated fabric_asns dictionary.
+
+        Raises:
+            ValueError: If any ASN is outside the valid range (1-4294967295).
+
+        Example:
+            >>> # Valid ASNs
+            >>> fabric_asns = {"spines": 64600, "l1": 65001}  # OK
+
+            >>> # Invalid ASN (too large)
+            >>> fabric_asns = {"spines": 4294967296}  # Raises ValueError
+
+            >>> # Invalid ASN (zero)
+            >>> fabric_asns = {"l1": 0}  # Raises ValueError
+        """
+        min_asn = 1
+        max_asn = 4294967295  # 2^32 - 1 (32-bit ASN)
+
+        for device_or_role, asn in v.items():
+            if not (min_asn <= asn <= max_asn):
+                msg = (
+                    f"Invalid ASN {asn} for '{device_or_role}'. "
+                    f"ASN must be between {min_asn} and {max_asn} (32-bit range). "
+                    f"Common ranges: Private ASNs (64512-65534), Public ASNs (1-64511, 65535-4294967295)"
+                )
+                raise ValueError(msg)
+
+        return v
 
     # MODEL VALIDATORS
     @model_validator(mode="after")
