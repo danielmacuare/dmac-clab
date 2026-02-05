@@ -3,6 +3,12 @@
 
 A Python package for network automation utilities, designed for use with Containerlab network topologies and multi-vendor network device management.
 
+## TO-DO
+- Fix the Jinja templates complexity with python pre-processing.
+  - Check pre-processing description.
+- Check if you have a quick way to input-datamodel -> output-datamodel -> nornir groups yaml file
+
+
 ## Overview
 
 `py_netauto` provides a comprehensive set of tools and utilities for network automation tasks, including:
