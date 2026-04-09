@@ -1,5 +1,15 @@
-! GENERAL CONFIG - Role: {{ host.role }}
-hostname {{ host.name }}
+{# Get current device data and helper variables #}
+{% set device = current_device %}
+{% set mgmt_interface = device.interfaces | selectattr('name', 'equalto', 'Management0') | first %}
+{% set loopback0 = device.interfaces | selectattr('name', 'equalto', 'Loopback0') | first %}
+{% set ethernet_interfaces = [] %}
+{% for iface in device.interfaces %}
+  {% if iface.name.startswith('Ethernet') %}
+    {% set _ = ethernet_interfaces.append(iface) %}
+  {% endif %}
+{% endfor %}
+! GENERAL CONFIG - Role: {{ device.role }}
+hostname {{ device.hostname }}
 no enable password
 no aaa root
 
@@ -13,132 +23,105 @@ service routing protocols model multi-agent
 transceiver qsfp default-mode 4x10G
 
 ! USERS
-username {{ host.username }} privilege 15 role network-admin secret 0 {{ host.password }}
+username {{ username }} privilege 15 role network-admin secret 0 {{ password }}
 
 ! VRF AND SERVICES
-vrf instance {{ host.mgmt_vrf_name }}
+vrf instance {{ mgmt_vrf_name }}
 
 ! GNMI
 management api gnmi
    transport grpc default
-      vrf {{ host.mgmt_vrf_name }}
+      vrf {{ mgmt_vrf_name }}
 
 ! NETCONF
 management api netconf
    transport ssh default
-      vrf {{ host.mgmt_vrf_name }}
+      vrf {{ mgmt_vrf_name }}
 
 ! eAPI
 management api http-commands
    protocol https
    no shutdown
    !
-   vrf {{ host.mgmt_vrf_name }}
+   vrf {{ mgmt_vrf_name }}
       no shutdown
 
 ! IP ROUTING
 ip routing
-no ip routing vrf {{ host.mgmt_vrf_name }}
+no ip routing vrf {{ mgmt_vrf_name }}
 ip route vrf MGMT 0.0.0.0/0 172.100.100.1
 ipv6 route vrf MGMT ::/0 2001:172:100:100::1
 
 ! MGMT INTERFACE
 interface Management0
-   vrf {{ host.mgmt_vrf_name }}
-   ip address {{ host.hostname }}/24
-   ipv6 address {{ host.ipv6_address }}/64
+   vrf {{ mgmt_vrf_name }}
+   ip address {{ mgmt_interface.ipv4 }}
+   ipv6 address {{ mgmt_interface.ipv6 }}
 
 ! LOOPBACK INTERFACES
 interface Loopback0
-   description VTEP_RID_{{ host.name | upper }}
+   description {{ loopback0.description }}
    no shutdown
-   ip address {{ host.lo0_ips[host.name] }}
+   ip address {{ loopback0.ipv4 }}
 !
 
 ! LEAF-SPINE-INTERFACES
-Interface Ethernet 1
-   description P2P_L1_Eth{{ host.name[1:] }}
+{% for interface in ethernet_interfaces %}
+Interface {{ interface.name }}
+   description P2P_{{ interface.remote_device | upper }}_{{ interface.remote_interface }}
    no shutdown
    mtu 9214
    no switchport
-   ip address {{ host.p2p_ips[host.name]['to_l1'] }}
-
-Interface Ethernet 2
-   description P2P_L2_Eth{{ host.name[1:] }}
-   no shutdown
-   mtu 9214
-   no switchport
-   ip address {{ host.p2p_ips[host.name]['to_l2'] }}
+   ip address {{ interface.ipv4 }}
    
-Interface Ethernet 3
-   description P2P_L3_Eth{{ host.name[1:] }}
-   no shutdown
-   mtu 9214
-   no switchport
-   ip address {{ host.p2p_ips[host.name]['to_l3'] }}
-   
-Interface Ethernet 4
-   description P2P_L4_Eth{{ host.name[1:] }}
-   no shutdown
-   mtu 9214
-   no switchport
-   ip address {{ host.p2p_ips[host.name]['to_l4'] }}
-   
-Interface Ethernet 5
-   description P2P_L5_Eth{{ host.name[1:] }}
-   no shutdown
-   mtu 9214
-   no switchport
-   ip address {{ host.p2p_ips[host.name]['to_l5'] }}
-
+{% endfor %}
 ! SPINE-ONLY-CONFIG
 ! Spines act as a pure Layer 3 device. They don't need SPT
 spanning-tree mode none
 
 ! UNDERLAY
 ! The aim here is to create BGP Peerings via the physical interfaces between the Leaves and the Spines.
-! After the peering has been created, we will advertise the Lo0 via eBGP to be used for peering in the OVerlay (EVPN - Control Plane) and L1 to be used as the VTEP Source IP (VXLAN - Data Plane)
+! After the peering has been created, we will advertise the Lo0 via eBGP to be used for peering in the OVerlay (EVPN - Control Plane)
 
 ! Define the Loopbacks we want to advertise
-ip prefix-list PL-LOOPBACKS seq 10 permit {{ host.lo0_ips[host.name] }}
+ip prefix-list PL-LOOPBACKS seq 10 permit {{ loopback0.ipv4 }}
 
 ! Create a Route Map
 route-map RM-UNDERLAY-ADVERTISE permit 10
    match ip address prefix-list PL-LOOPBACKS 
 
-router bgp {{ host.asns.spines }}
-{# split Gets rid of /32 from the lo0_ips  #}
-   router-id {{ host.lo0_ips[host.name].split('/')[0] }}
+router bgp {{ device.fabric_asn }}
+   router-id {{ device.router_id }}
    ! You will not only exchange IPv4 routes but also EVPN routes
    no bgp default ipv4-unicast
    ! ECMP load-balancing across 4 paths if available.
-   maximum-paths {{ host.ecmp_maximum_paths }}
+   maximum-paths {{ topology.ecmp_maximum_paths }}
    redistribute connected route-map RM-UNDERLAY-ADVERTISE
 
    neighbor IPV4-LEAVES peer group
-   neighbor IPV4-LEAVES password 0 {{ host.secret_bgp_password }}
+   neighbor IPV4-LEAVES password 0 {{ secret_bgp_password }}
    neighbor IPV4-LEAVES send-community
-   neighbor IPV4-LEAVES maximum-routes {{ host.bgp_maximum_routes }}
+   neighbor IPV4-LEAVES maximum-routes {{ topology.bgp_maximum_routes }}
 
-   neighbor {{ host.p2p_ips['l1']['to_' + host.name].split("/")[0] }} description L1_ETH{{ host.name[1:] }}
-   neighbor {{ host.p2p_ips['l1']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
-   neighbor {{ host.p2p_ips['l1']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns['l1'] }}
+{% for interface in ethernet_interfaces %}
+{# Get the remote leaf device and find its interface to this spine #}
+{% set remote_leaf = interface.remote_device %}
+{% set remote_interface_name = interface.remote_interface %}
+{# Find the remote leaf's interface to get the IP address and ASN #}
+{% set leaf_devices = topology.leaves.devices %}
+{% for leaf in leaf_devices %}
+{% if leaf.hostname == remote_leaf %}
+{% for leaf_interface in leaf.interfaces %}
+{% if leaf_interface.name == remote_interface_name %}
+   neighbor {{ leaf_interface.ipv4.split('/')[0] }} description {{ remote_leaf | upper }}_{{ remote_interface_name | upper }}
+   neighbor {{ leaf_interface.ipv4.split('/')[0] }} peer group IPV4-LEAVES
+   neighbor {{ leaf_interface.ipv4.split('/')[0] }} remote-as {{ leaf.fabric_asn }}
    
-   neighbor {{ host.p2p_ips['l2']['to_' + host.name].split("/")[0] }} description L2_ETH{{ host.name[1:] }}
-   neighbor {{ host.p2p_ips['l2']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
-   neighbor {{ host.p2p_ips['l2']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns['l2'] }}
-
-   neighbor {{ host.p2p_ips['l3']['to_' + host.name].split("/")[0] }} description L3_ETH{{ host.name[1:] }}
-   neighbor {{ host.p2p_ips['l3']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
-   neighbor {{ host.p2p_ips['l3']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns['l3'] }}
-
-   neighbor {{ host.p2p_ips['l4']['to_' + host.name].split("/")[0] }} description L4_ETH{{ host.name[1:] }}
-   neighbor {{ host.p2p_ips['l4']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
-   neighbor {{ host.p2p_ips['l4']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns['l4'] }}
-
-   neighbor {{ host.p2p_ips['l5']['to_' + host.name].split("/")[0] }} description L5_ETH{{ host.name[1:] }}
-   neighbor {{ host.p2p_ips['l5']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
-   neighbor {{ host.p2p_ips['l5']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns['l5'] }}
-
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endfor %}
 address-family ipv4
       neighbor IPV4-LEAVES activate
+

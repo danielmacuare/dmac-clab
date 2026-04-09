@@ -1,0 +1,155 @@
+# Lean Fabric Data Model - Only Input Fields (Computed Fields Handled by Pydantic)
+# Computed Fields: role, fabric_asn, router_id (from Loopback0), vtep_ipv4 (from Loopback1)
+
+schema_version: "1.0.1"
+schema_description: "Lean data model for ceos_clab_clos - 2 spines, 5 leaves"
+fabric_name: ceos_clab_clos
+
+mgmt_vrf: MGMT
+
+reserved_supernets:
+    p2p_pool: 10.254.0.0/16
+    loopback0_pool: 10.255.0.0/24
+    loopback1_pool: 10.255.1.0/24
+    management_pool:
+        ipv4_subnet: 172.100.100.0/24
+        ipv6_subnet: 2001:172:100:100::/64
+
+fabric_asns:
+    spines: 64600
+    l1: 65001
+    l2: 65002
+    l3: 65003
+    l4: 65004
+    l5: 65005
+
+topology:
+    platform: arista_eos
+    ecmp_maximum_paths: 64
+    bgp_maximum_routes: 12000
+    spines:
+        nornir_group: spine_group
+        devices:
+            - hostname: s1
+              interfaces:
+                - name: Management0
+                  ipv4: 172.100.100.121/24
+                  ipv6: 2001:172:100:100::121/64
+                - name: Loopback0
+                  ipv4: 10.255.0.1/32
+                - name: Ethernet1
+                  ipv4: 10.254.1.0/31
+                  remote_device: l1
+                - name: Ethernet2
+                  ipv4: 10.254.1.2/31
+                  remote_device: l2
+                - name: Ethernet3
+                  ipv4: 10.254.1.4/31
+                  remote_device: l3
+                - name: Ethernet4
+                  ipv4: 10.254.1.6/31
+                  remote_device: l4
+                - name: Ethernet5
+                  ipv4: 10.254.1.8/31
+                  remote_device: l5
+            - hostname: s2
+              interfaces:
+                - name: Management0
+                  ipv4: 172.100.100.122/24
+                  ipv6: 2001:172:100:100::122/64
+                - name: Loopback0
+                  ipv4: 10.255.0.2/32
+                - name: Ethernet1
+                  ipv4: 10.254.2.0/31
+                  remote_device: l1
+                - name: Ethernet2
+                  ipv4: 10.254.2.2/31
+                  remote_device: l2
+                - name: Ethernet3
+                  ipv4: 10.254.2.4/31
+                  remote_device: l3
+                - name: Ethernet4
+                  ipv4: 10.254.2.6/31
+                  remote_device: l4
+                - name: Ethernet5
+                  ipv4: 10.254.2.8/31
+                  remote_device: l5
+
+    leaves:
+        nornir_group: leaf_group
+        devices:
+            - hostname: l1
+              interfaces:
+                - name: Management0
+                  ipv4: 172.100.100.61/24
+                  ipv6: 2001:172:100:100::61/64
+                - name: Loopback0
+                  ipv4: 10.255.0.11/32
+                - name: Loopback1
+                  ipv4: 10.255.1.11/32
+                - name: Ethernet1
+                  ipv4: 10.254.1.1/31
+                  remote_device: s1
+                - name: Ethernet2
+                  ipv4: 10.254.2.1/31
+                  remote_device: s2
+            - hostname: l2
+              interfaces:
+                - name: Management0
+                  ipv4: 172.100.100.62/24
+                  ipv6: 2001:172:100:100::62/64
+                - name: Loopback0
+                  ipv4: 10.255.0.12/32
+                - name: Loopback1
+                  ipv4: 10.255.1.12/32
+                - name: Ethernet1
+                  ipv4: 10.254.1.3/31
+                  remote_device: s1
+                - name: Ethernet2
+                  ipv4: 10.254.2.3/31
+                  remote_device: s2
+            - hostname: l3
+              interfaces:
+                - name: Management0
+                  ipv4: 172.100.100.63/24
+                  ipv6: 2001:172:100:100::63/64
+                - name: Loopback0
+                  ipv4: 10.255.0.13/32
+                - name: Loopback1
+                  ipv4: 10.255.1.13/32
+                - name: Ethernet1
+                  ipv4: 10.254.1.5/31
+                  remote_device: s1
+                - name: Ethernet2
+                  ipv4: 10.254.2.5/31
+                  remote_device: s2
+            - hostname: l4
+              interfaces:
+                - name: Management0
+                  ipv4: 172.100.100.64/24
+                  ipv6: 2001:172:100:100::64/64
+                - name: Loopback0
+                  ipv4: 10.255.0.14/32
+                - name: Loopback1
+                  ipv4: 10.255.1.14/32
+                - name: Ethernet1
+                  ipv4: 10.254.1.7/31
+                  remote_device: s1
+                - name: Ethernet2
+                  ipv4: 10.254.2.7/31
+                  remote_device: s2
+            - hostname: l5
+              interfaces:
+                - name: Management0
+                  ipv4: 172.100.100.65/24
+                  ipv6: 2001:172:100:100::65/64
+                - name: Loopback0
+                  ipv4: 10.255.0.15/32
+                - name: Loopback1
+                  ipv4: 10.255.1.15/32
+                - name: Ethernet1
+                  ipv4: 10.254.1.9/31
+                  remote_device: s1
+                - name: Ethernet2
+                  ipv4: 10.254.2.9/31
+                  remote_device: s2

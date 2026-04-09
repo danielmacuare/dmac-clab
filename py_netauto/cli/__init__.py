@@ -9,6 +9,7 @@ with sophisticated filtering capabilities.
 
 import typer
 
+from py_netauto.cli.commands.datamodel import app as datamodel_app
 from py_netauto.cli.commands.push import push_command
 from py_netauto.cli.commands.render import render_command
 from py_netauto.cli.commands.sessions import sessions_abort_command, sessions_list_command
@@ -42,6 +43,9 @@ sessions_app.command(name="abort", help="Abort all pending configuration session
 
 # Add sessions subcommand group to main app
 app.add_typer(sessions_app, name="sessions")
+
+# Add datamodel subcommand group to main app
+app.add_typer(datamodel_app, name="datamodel")
 
 
 if __name__ == "__main__":

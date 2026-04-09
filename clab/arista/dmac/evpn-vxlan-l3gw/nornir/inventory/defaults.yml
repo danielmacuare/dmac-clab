@@ -1,6 +1,5 @@
----
 username: "admin"
-#password: "admin" # Can be added in the .env file
+password: "admin"
 data:
     dns:
         - 1.1.1.1

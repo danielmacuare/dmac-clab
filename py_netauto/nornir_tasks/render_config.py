@@ -17,38 +17,50 @@ def render_configs(
     output_path: Path | None = None,
 ) -> None:
     """
-    Render device configuration from Jinja2 template.
+        Render device configuration from Jinja2 template.
 
-    This task renders a device configuration using a Jinja2 template based on the
-    device's role. The rendered configuration is written to a file in the output
-    directory.
+        This task renders a device configuration using a Jinja2 template based on the
+        device's role. The rendered configuration is written to a file in the output
+        directory.
 
     Args:
-        task: Nornir task object containing host information.
-        templates_path: Optional path to Jinja2 templates directory. If not provided,
-            uses JINJA_TEMPLATES_FOLDER_PATH from environment configuration.
-        output_path: Optional path to output directory for generated configs. If not
-            provided, uses GENERATED_CONFIGS_FOLDER_PATH from environment configuration.
+            task: Nornir task object containing host information.
+            templates_path: Optional path to Jinja2 templates directory. If not provided,
+                uses JINJA_TEMPLATES_FOLDER_PATH from environment configuration.
+            output_path: Optional path to output directory for generated configs. If not
+                provided, uses GENERATED_CONFIGS_FOLDER_PATH from environment configuration.
 
     Returns:
-        None. The task writes the rendered configuration to a file.
+            None. The task writes the rendered configuration to a file.
 
     Raises:
-        FileNotFoundError: If the template file is not found.
-        PermissionError: If the output directory is not writable.
+            FileNotFoundError: If the template file is not found.
+            PermissionError: If the output directory is not writable.
 
     Example:
-        Basic usage with defaults:
+            Basic usage with defaults:
 
-        ```python
-        nr.run(task=render_configs)
-        ```
 
-        With path overrides:
 
-        ```python
-        nr.run(task=render_configs, templates_path=Path("custom/templates"), output_path=Path("custom/output"))
-        ```
+
+    python
+            nr.run(task=render_configs)
+
+
+
+
+
+            With path overrides:
+
+
+
+
+    python
+            nr.run(task=render_configs, templates_path=Path("custom/templates"), output_path=Path("custom/output"))
+
+
+
+
 
     """
     # Use overrides if provided, otherwise use environment defaults
@@ -69,11 +81,30 @@ def render_configs(
         print(f"Skipping Host {task.host.name}: No template mapped for role '{device_role}")
         return
 
+    # Collect all template variables
+    template_vars = {}
+
+    # 1. Add special attributes (username, password)
+    template_vars["username"] = task.host.username
+    template_vars["password"] = task.host.password
+
+    # 2. Add defaults data section (includes secret_bgp_password)
+    if task.host.defaults:
+        template_vars.update(task.host.defaults.data)
+
+    # 3. Add group data (fabric group has topology data)
+    for group in task.host.groups:
+        template_vars.update(group.data)
+
+    # 4. Add host-specific data (includes current_device injected by inject_current_device_data)
+    template_vars.update(task.host.data)
+
     rendered_config: MultiResult = task.run(
         task=template_file,
         name="Rendering Device config",
         template=device_template,
         path=str(templates_dir),
+        **template_vars,
     )
 
     output_file = f"{output_dir}/{task.host.name}.cfg"

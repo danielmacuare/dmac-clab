@@ -1,0 +1,284 @@
+"""
+Network interface models.
+
+This module provides models for network interface configuration including
+physical and logical interfaces with IPv4/IPv6 addressing.
+"""
+
+from ipaddress import IPv4Interface, IPv6Interface
+
+from pydantic import BaseModel, Field, computed_field, field_validator
+
+
+class Interface(BaseModel):
+    """
+    Network interface configuration.
+
+    Represents a physical or logical network interface with IPv4/IPv6
+    addressing and connectivity information. Automatically generates
+    interface descriptions based on interface type and parent device.
+
+    Injected Dependencies:
+        _device_hostname (str | None): Parent device hostname injected by
+            Device model validator. Required for description computed field.
+        _mgmt_vrf (str | None): Management VRF name injected by FabricDataModel.
+            Required for mgmt_vrf computed field on Management0 interfaces.
+        _devices (list[Device] | None): List of all devices in fabric injected by
+            FabricDataModel. Required for remote_interface computed field on P2P links.
+
+    Computed Fields:
+        description (str | None): Generated based on interface type and hostname.
+            - Management0: "Management Interface | <HOSTNAME>"
+            - Loopback0: "ROUTER_ID | EVPN_PEERING | <HOSTNAME>"
+            - Loopback1: "VTEP_IP | VXLAN_DATA_PLANE | <HOSTNAME>"
+            - Ethernet* (with remote_device): "P2P Link to <REMOTE_DEVICE>"
+        mgmt_vrf (str | None): Returns injected VRF for Management0, None otherwise.
+        remote_interface (str | None): Returns the name of the reciprocal interface
+            on the remote device for P2P links. None for non-P2P interfaces.
+
+    Field Validators:
+        validate_interface_name: Validates interface name matches vendor patterns
+            (Ethernet*, Loopback*, Management*).
+
+    Attributes:
+        name: Interface name (e.g., Ethernet1, Management0, Loopback0).
+        ipv4: IPv4 address with prefix length.
+        ipv6: Optional IPv6 address with prefix length.
+        remote_device: Hostname of connected remote device (for P2P links).
+    """
+
+    name: str = Field(
+        description="Interface name (e.g., Ethernet1, Management0, Loopback0, GigabitEthernet0/0/1)",
+        examples=[
+            "Ethernet1",
+            "Ethernet2",
+            "Management0",
+            "Loopback0",
+            "Loopback1",
+            "GigabitEthernet0/0/1",
+            "TenGigabitEthernet1/0/1",
+            "Vlan100",
+            "Port-Channel1",
+        ],
+    )
+    ipv4: IPv4Interface = Field(
+        description="IPv4 address with prefix length assigned to the interface (e.g., 10.254.1.0/31)",
+        examples=["10.254.1.0/31", "10.254.1.2/31", "10.255.0.1/32", "10.255.1.1/32", "172.100.100.121/24"],
+    )
+    ipv6: IPv6Interface | None = Field(
+        default=None,
+        description="IPv6 address with prefix length assigned to the interface (e.g., 2001:db8::1/64)",
+        examples=["2001:172:100:100::121/64", "2001:db8::1/64", None],
+    )
+    remote_device: str | None = Field(
+        default=None,
+        description="Hostname of the remote device connected to this interface (None for loopback/management)",
+        examples=["s1", "l1", "spine1", "leaf2", None],
+    )
+
+    # Injected Attributes
+
+    # Private attribute injected by parent Device model
+    _device_hostname: str | None = None
+
+    # Private attribute injected by the parent FabricDataModel
+    _mgmt_vrf: str | None = None
+
+    # Type list["Device"] to avoid circular dependency on imports since the Device class imports Interface
+    _devices: list["Device"] | None = None  # noqa: F821
+
+    # FIELD VALIDATORS
+    @field_validator("name")
+    @classmethod
+    def validate_interface_name(cls, v: str) -> str:
+        """
+        Validate interface name matches vendor-specific patterns.
+
+        Ensures interface names follow standard naming conventions for
+        Arista and Cisco network devices. Only full interface names are
+        accepted (e.g., "Ethernet1" not "eth1", "GigabitEthernet0/0/1" not "Gi0/0/1").
+
+        Supported patterns:
+            Arista EOS:
+                - Ethernet: Ethernet1, Ethernet2, Ethernet1/1, etc.
+                - Management: Management0, Management1, etc.
+                - Loopback: Loopback0, Loopback1, Loopback100, etc.
+                - Vlan: Vlan10, Vlan100, Vlan4094, etc.
+                - Port-Channel: Port-Channel1, Port-Channel100, etc.
+                - Vxlan: Vxlan1
+
+            Cisco IOS/IOS-XE:
+                - GigabitEthernet: GigabitEthernet0/0/1, GigabitEthernet1/0/1, etc.
+                - TenGigabitEthernet: TenGigabitEthernet0/0/1, etc.
+                - FortyGigabitEthernet: FortyGigabitEthernet0/0/1, etc.
+                - HundredGigE: HundredGigE0/0/1, etc.
+                - Loopback: Loopback0, Loopback1, etc.
+                - Vlan: Vlan10, Vlan100, etc.
+                - Port-channel: Port-channel1, Port-channel100, etc.
+
+        Args:
+            v: Interface name string to validate.
+
+        Returns:
+            str: The validated interface name.
+
+        Raises:
+            ValueError: If interface name doesn't match any supported pattern
+                or uses abbreviated form (e.g., "Gi0/0/1" instead of "GigabitEthernet0/0/1").
+
+        Example:
+            >>> # Valid Arista interface names
+            >>> Interface(name="Ethernet1", ipv4="10.0.0.1/24")  # OK
+            >>> Interface(name="Management0", ipv4="192.168.1.1/24")  # OK
+            >>> Interface(name="Vlan100", ipv4="10.1.1.1/24")  # OK
+
+            >>> # Valid Cisco interface names
+            >>> Interface(name="GigabitEthernet0/0/1", ipv4="10.0.0.1/24")  # OK
+            >>> Interface(name="TenGigabitEthernet1/0/1", ipv4="10.0.0.1/24")  # OK
+
+            >>> # Invalid interface names (abbreviated forms)
+            >>> Interface(name="eth1", ipv4="10.0.0.1/24")  # Raises ValueError
+            >>> Interface(name="Gi0/0/1", ipv4="10.0.0.1/24")  # Raises ValueError
+            >>> Interface(name="Te1/0/1", ipv4="10.0.0.1/24")  # Raises ValueError
+        """
+        # Arista EOS interface prefixes
+        arista_prefixes = (
+            "Ethernet",
+            "Management",
+            "Loopback",
+            "Vlan",
+            "Port-Channel",
+            "Vxlan",
+        )
+
+        # Cisco IOS/IOS-XE interface prefixes (full names only, no abbreviations)
+        cisco_prefixes = (
+            "GigabitEthernet",
+            "TenGigabitEthernet",
+            "FortyGigabitEthernet",
+            "HundredGigE",
+            "TwentyFiveGigE",
+            "Port-channel",
+        )
+
+        # Combined valid prefixes
+        valid_prefixes = arista_prefixes + cisco_prefixes
+
+        if not v.startswith(valid_prefixes):
+            msg = (
+                f"Invalid interface name '{v}'. "
+                f"Interface name must use full form (no abbreviations) and start with one of:\n"
+                f"  Arista: {', '.join(arista_prefixes)}\n"
+                f"  Cisco: {', '.join(cisco_prefixes)}\n"
+                f"Examples: Ethernet1, GigabitEthernet0/0/1, Management0, Loopback0, Vlan100"
+            )
+            raise ValueError(msg)
+
+        return v
+
+    # COMPUTED FIELDS
+    @property
+    def description(self) -> str | None:
+        """
+        Generate interface description based on interface type.
+
+        Automatically creates standardized descriptions for different interface types:
+        - Management interfaces: "Management Interface | <HOSTNAME>"
+        - Loopback0: "ROUTER_ID | EVPN_PEERING | <HOSTNAME>"
+        - Loopback1: "VTEP_IP | VXLAN_DATA_PLANE | <HOSTNAME>"
+        - Ethernet P2P links: "P2P Link to <REMOTE_DEVICE>"
+
+        Returns:
+            str: Generated description for known interface types.
+            None: If parent device hostname is not set or interface type is unknown.
+
+        Example:
+            >>> iface = Interface(name="Loopback0", ipv4="10.255.0.1/32")
+            >>> iface._device_hostname = "s1"
+            >>> iface.description
+            'ROUTER_ID | EVPN_PEERING | S1'
+
+            >>> p2p = Interface(name="Ethernet1", ipv4="10.254.1.0/31", remote_device="l1")
+            >>> p2p._device_hostname = "s1"
+            >>> p2p.description
+            'P2P Link to l1'
+        """
+        hostname = self._device_hostname.upper() if self._device_hostname else None
+
+        if hostname is None:
+            return None
+
+        interface_descriptions = {
+            "Management0": f"Management Interface | {hostname}",
+            "Loopback0": f"ROUTER_ID | EVPN_PEERING | {hostname}",
+            "Loopback1": f"VTEP_IP | VXLAN_DATA_PLANE | {hostname}",
+        }
+        if self.name in interface_descriptions:
+            return interface_descriptions[self.name]
+
+        if self.name.startswith("Ethernet") and self.remote_device:
+            return f"P2P Link to {self.remote_device}"
+
+        return None
+
+    @computed_field
+    @property
+    def mgmt_vrf(self) -> str | None:
+        """
+        Determine the VRF for this interface.
+
+        Returns the management VRF name if this is a Management0 interface,
+        otherwise returns None to indicate no VRF assignment. The VRF value
+        is injected from the parent FabricDataModel during validation.
+
+        Returns:
+            str: Management VRF name (e.g., "MGMT") for Management0 interfaces
+                when injected from FabricDataModel.
+            None: For all other interface types, or if VRF was not injected.
+
+        Example:
+            >>> iface = Interface(name="Management0", ipv4="10.0.0.1/24")
+            >>> iface._mgmt_vrf = "MGMT"  # Injected by FabricDataModel
+            >>> iface.mgmt_vrf
+            'MGMT'
+
+            >>> iface = Interface(name="Ethernet1", ipv4="10.254.1.0/31")
+            >>> iface.mgmt_vrf is None
+            True
+        """
+        if self.name == "Management0":
+            return self._mgmt_vrf
+        return None
+
+    @computed_field
+    @property
+    def remote_interface(self) -> str | None:
+        if (self._devices is None) or (self.remote_device is None):
+            return None
+
+        # Find the remote_device in the _devices list
+        for device in self._devices:
+            if device.hostname == self.remote_device:
+                # Once found the remote device, check if any of its interfaces point back to this local device
+                for interface in device.interfaces:
+                    # If so, then grab its interface name. This should be the remote interface for the local device.
+                    if interface.remote_device == self._device_hostname:
+                        return interface.name
+
+        return None
+
+        # Find the remote_device in the _devices list
+        for device in self._devices:
+            if device.hostname == self.remote_device:
+                # Once found the remote device, check if any of its interfaces point back to this local device
+                for interface in device.interfaces:
+                    # If so, then grab its interface name. This should be the remote interface for the local device.
+                    if interface.remote_device == self._device_hostname:
+                        return interface.name
+
+        return None
+
+        # Get the remote interface of S1 Et1 --> L1
+        # Iterate by self_devices and see if L1 is there
+        # If there is a match, I need to check that S1 is one of the remote_device
+        # When I find that match, I will get interface.name Ethernet1
