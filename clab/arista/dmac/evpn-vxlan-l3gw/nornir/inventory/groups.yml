@@ -21,8 +21,8 @@ fabric:
     data:
         platform: arista_eos # Used by scrapli (fallback)
         maximum_paths: 64
-        ecmp_maximum_paths: 64
         bgp_maximum_routes: 12000
+        ecmp_maximum_paths: 12
         asns:
             spines: 64600
             l1: 65001

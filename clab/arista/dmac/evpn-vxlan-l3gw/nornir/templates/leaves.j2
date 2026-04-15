@@ -50,12 +50,12 @@ interface Management0
 
 ! LOOPBACK INTERFACES
 interface Loopback0
-   description VTEP_RID_{{ host.name | upper }}
+   description EVPN_RID_{{ host.name | upper }}
    no shutdown
    ip address {{ host.lo0_ips[host.name] }}
 !
 interface Loopback1
-   description VXLAN_TUNNEL_SOURCE_{{ host.name | upper }}
+   description VTEP_SOURCE_{{ host.name | upper }}
    no shutdown
    ip address {{ host.lo1_ips[host.name] }}
    
@@ -99,8 +99,8 @@ router bgp {{ host.asns[host.name] }}
    router-id {{ host.lo0_ips[host.name].split('/')[0] }}
    ! You will not only exchange IPv4 routes but also EVPN routes
    no bgp default ipv4-unicast
-   ! ECMP load-balancing - Maximum paths <control plane paths>  ecmp <data plane paths>
-   maximum-paths {{ host.maximum_paths }} ecmp {{host.ecmp_maximum_paths}}
+   ! ECMP load-balancing - Maximum paths 
+   maximum-paths {{ host.ecmp_maximum_paths }}
    ! ECMP AS-Path Relaxed
    bgp bestpath as-path multipath-relax
    redistribute connected route-map RM-UNDERLAY-ADVERTISE
