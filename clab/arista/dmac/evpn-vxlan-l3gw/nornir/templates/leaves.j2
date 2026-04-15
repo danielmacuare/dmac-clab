@@ -97,6 +97,8 @@ route-map RM-UNDERLAY-ADVERTISE permit 10
 router bgp {{ host.asns[host.name] }}
 {# split Gets rid of /32 from the lo0_ips  #}
    router-id {{ host.lo0_ips[host.name].split('/')[0] }}
+   ! Avoids blackholing prefixes not yet present in the FIB
+   update wait-install
    ! You will not only exchange IPv4 routes but also EVPN routes
    no bgp default ipv4-unicast
    ! ECMP load-balancing - Maximum paths 
