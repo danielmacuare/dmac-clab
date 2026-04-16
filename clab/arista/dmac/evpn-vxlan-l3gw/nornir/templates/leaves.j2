@@ -38,7 +38,6 @@ management api http-commands
 
 ! IP ROUTING
 ip routing
-no ip routing vrf {{ host.mgmt_vrf_name }}
 ip route vrf MGMT 0.0.0.0/0 172.100.100.1
 ipv6 route vrf MGMT ::/0 2001:172:100:100::1
 
@@ -90,9 +89,15 @@ spanning-tree mst 0 priority 4096
 ip prefix-list PL-LOOPBACKS seq 10 permit  {{ host.lo0_ips[host.name] }}
 ip prefix-list PL-LOOPBACKS seq 20 permit  {{ host.lo1_ips[host.name] }}
 
+
+ip prefix-list P2P-UNDERLAY seq 10 permit  {{ host.p2p_ips[host.name]['to_s1'] }}
+ip prefix-list P2P-UNDERLAY seq 20 permit  {{ host.p2p_ips[host.name]['to_s2'] }}
+
 ! Create a Route Map
 route-map RM-UNDERLAY-ADVERTISE permit 10
    match ip address prefix-list PL-LOOPBACKS 
+route-map RM-UNDERLAY-ADVERTISE permit 20
+   match ip address prefix-list P2P-UNDERLAY
 
 router bgp {{ host.asns[host.name] }}
 {# split Gets rid of /32 from the lo0_ips  #}
@@ -113,16 +118,15 @@ router bgp {{ host.asns[host.name] }}
    neighbor IPV4-SPINES maximum-routes {{ host.bgp_maximum_routes }}
    neighbor IPV4-SPINES remote-as {{ host.asns.spines }}
    neighbor IPV4-SPINES route-map RM-UNDERLAY-ADVERTISE out
+   neighbor IPV4-SPINES bfd interval 300 min-rx 300 multiplier 3
 
    ! S1 BGP Neighbor
    neighbor {{ host.p2p_ips['s1']['to_' + host.name].split("/")[0] }} description S1_ETH{{ host.name[1:] }}
    neighbor {{ host.p2p_ips['s1']['to_' + host.name].split("/")[0] }} peer group IPV4-SPINES
-   neighbor {{ host.p2p_ips['s1']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns.spines }}
 
    ! S2 BGP Neighbor  
    neighbor {{ host.p2p_ips['s2']['to_' + host.name].split("/")[0] }} description S2_ETH{{ host.name[1:] }}
    neighbor {{ host.p2p_ips['s2']['to_' + host.name].split("/")[0] }} peer group IPV4-SPINES
-   neighbor {{ host.p2p_ips['s2']['to_' + host.name].split("/")[0] }} remote-as {{ host.asns.spines }}
 
    ! IPv4 Address Family
    address-family ipv4

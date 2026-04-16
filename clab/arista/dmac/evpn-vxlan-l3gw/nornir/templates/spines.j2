@@ -38,7 +38,6 @@ management api http-commands
 
 ! IP ROUTING
 ip routing
-no ip routing vrf {{ host.mgmt_vrf_name }}
 ip route vrf MGMT 0.0.0.0/0 172.100.100.1
 ipv6 route vrf MGMT ::/0 2001:172:100:100::1
 
@@ -102,9 +101,17 @@ spanning-tree mode none
 ! Define the Loopbacks we want to advertise
 ip prefix-list PL-LOOPBACKS seq 10 permit {{ host.lo0_ips[host.name] }}
 
+ip prefix-list P2P-UNDERLAY seq 10 permit {{ host.p2p_ips[host.name]['to_l1'] }}
+ip prefix-list P2P-UNDERLAY seq 20 permit {{ host.p2p_ips[host.name]['to_l2'] }}
+ip prefix-list P2P-UNDERLAY seq 30 permit {{ host.p2p_ips[host.name]['to_l3'] }}
+ip prefix-list P2P-UNDERLAY seq 40 permit {{ host.p2p_ips[host.name]['to_l4'] }}
+ip prefix-list P2P-UNDERLAY seq 50 permit {{ host.p2p_ips[host.name]['to_l5'] }}
+
 ! Create a Route Map
 route-map RM-UNDERLAY-ADVERTISE permit 10
    match ip address prefix-list PL-LOOPBACKS 
+route-map RM-UNDERLAY-ADVERTISE permit 20
+   match ip address prefix-list P2P-UNDERLAY
 
 router bgp {{ host.asns.spines }}
 {# split Gets rid of /32 from the lo0_ips  #}
@@ -123,6 +130,7 @@ router bgp {{ host.asns.spines }}
    neighbor IPV4-LEAVES password 0 {{ host.secret_bgp_password }}
    neighbor IPV4-LEAVES send-community
    neighbor IPV4-LEAVES maximum-routes {{ host.bgp_maximum_routes }}
+   neighbor IPV4-LEAVES bfd interval 300 min-rx 300 multiplier 3
 
    neighbor {{ host.p2p_ips['l1']['to_' + host.name].split("/")[0] }} description L1_ETH{{ host.name[1:] }}
    neighbor {{ host.p2p_ips['l1']['to_' + host.name].split("/")[0] }} peer group IPV4-LEAVES
@@ -146,3 +154,15 @@ router bgp {{ host.asns.spines }}
 
 address-family ipv4
       neighbor IPV4-LEAVES activate
+
+! OVERLAY
+
+    neighbor EVPN-OVERLAY-PEERS peer-group
+    ! Spines shouldn't change the next-hop when advertising EVPN routes to the Leaves. The spines are not VTEPs
+    neighbor EVPN-OVERLAY-PEERS next-hop-unchanged
+    neighbor EVPN-OVERLAY-PEERS update-source Loopback0
+    neighbor EVPN-OVERLAY-PEERS fall-over bfd
+    neighbor EVPN-OVERLAY-PEERS ebgp-multihop 3
+    neighbor EVPN-OVERLAY-PEERS password 0 {{ host.secret_bgp_password }}
+    neighbor EVPN-OVERLAY-PEERS send-community
+    neighbor EVPN-OVERLAY-PEERS maximum-routes 0
