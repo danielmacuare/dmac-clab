@@ -118,7 +118,8 @@ router bgp {{ host.asns[host.name] }}
    neighbor IPV4-SPINES maximum-routes {{ host.bgp_maximum_routes }}
    neighbor IPV4-SPINES remote-as {{ host.asns.spines }}
    neighbor IPV4-SPINES route-map RM-UNDERLAY-ADVERTISE out
-   neighbor IPV4-SPINES bfd interval 300 min-rx 300 multiplier 3
+   neighbor IPV4-SPINES bfd
+   neighbor IPV4-SPINES bfd interval 50 min-rx 50 multiplier 3
 
    ! S1 BGP Neighbor
    neighbor {{ host.p2p_ips['s1']['to_' + host.name].split("/")[0] }} description S1_ETH{{ host.name[1:] }}
@@ -128,6 +129,29 @@ router bgp {{ host.asns[host.name] }}
    neighbor {{ host.p2p_ips['s2']['to_' + host.name].split("/")[0] }} description S2_ETH{{ host.name[1:] }}
    neighbor {{ host.p2p_ips['s2']['to_' + host.name].split("/")[0] }} peer group IPV4-SPINES
 
-   ! IPv4 Address Family
+! OVERLAY
+
+   neighbor EVPN-OVERLAY-PEERS peer group
+   neighbor EVPN-OVERLAY-PEERS remote-as {{ host.asns.spines }}
+   neighbor EVPN-OVERLAY-PEERS update-source Loopback0
+   neighbor EVPN-OVERLAY-PEERS bfd
+   neighbor EVPN-OVERLAY-PEERS bfd interval 500 min-rx 500 multiplier 3
+   ! 2 would suffice we are not using MLAG and iBGP between MLAG Peers but we will set it to 3
+   neighbor EVPN-OVERLAY-PEERS ebgp-multihop 3
+   neighbor EVPN-OVERLAY-PEERS password 0 {{ host.secret_bgp_password }}
+   ! EVPN makes uses of extended communities
+   neighbor EVPN-OVERLAY-PEERS send-community extended
+   ! Disable route limits as EVPN will receive/advertise a lot of routes
+   neighbor EVPN-OVERLAY-PEERS maximum-routes 0
+
+   neighbor {{ host.lo0_ips['s1'].split("/")[0] }} description S1_LO0_EVPN
+   neighbor {{ host.lo0_ips['s1'].split("/")[0] }} peer group EVPN-OVERLAY-PEERS
+
+   neighbor {{ host.lo0_ips['s2'].split("/")[0] }} description S2_LO0_EVPN
+   neighbor {{ host.lo0_ips['s2'].split("/")[0] }} peer group EVPN-OVERLAY-PEERS
+
    address-family ipv4
       neighbor IPV4-SPINES activate
+
+   address-family evpn
+    neighbor EVPN-OVERLAY-PEERS activate
