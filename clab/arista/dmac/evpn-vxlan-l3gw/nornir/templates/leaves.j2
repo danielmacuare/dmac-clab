@@ -155,3 +155,24 @@ router bgp {{ host.asns[host.name] }}
 
    address-family evpn
     neighbor EVPN-OVERLAY-PEERS activate
+
+! Exit Address Family mode
+exit
+! Exit Router BGP mode
+exit
+
+
+! L2VNIs
+! VLAN Definitions
+
+{% for vlan in host.vlans %}
+vlan {{ vlan.vlan_id }}
+  name {{ vlan.name }}
+{% endfor %}
+
+interface Vxlan1
+  vxlan source-interface Loopback1
+  vxlan udp-port 4789
+  ! VLAN 10 --> VNI 10010, VLAN 20 --> VNI 10020
+  vxlan {{ host.l2_vnis.vlan_to_vni_mappings }}
+  
