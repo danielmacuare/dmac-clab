@@ -173,6 +173,6 @@ vlan {{ vlan.vlan_id }}
 interface Vxlan1
   vxlan source-interface Loopback1
   vxlan udp-port 4789
-  ! VLAN 10 --> VNI 10010, VLAN 20 --> VNI 10020
+  ! Automated VLAN to VNI mapping
   vxlan {{ host.l2_vnis.vlan_to_vni_mappings }}
   
