@@ -72,4 +72,16 @@ fabric:
             l5:
                 to_s1: "10.254.1.9/31" #Eth1
                 to_s2: "10.254.2.9/31" #Eth2
-
+        vlans:
+            - vlan_id: 10
+              name: VLAN10
+            - vlan_id: 20
+              name: VLAN20
+            - vlan_id: 30
+              name: VLAN30
+            - vlan_id: 40
+              name: VLAN40
+            - vlan_id: 50
+              name: VLAN50
+        l2_vnis:
+            vlan_to_vni_mappings: "vlan 10-1000 vni 10010-11000"
