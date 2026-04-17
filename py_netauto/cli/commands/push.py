@@ -21,13 +21,39 @@ from py_netauto.utils.nornir_helpers import initialize_nornir
 console = Console()
 
 
-def push_command(
-    filters: list[str] | None = typer.Option(None, "--filter", "-f", help="Filter devices (e.g., role=leaf)"),
-    dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Explicitly enable dry-run mode"),
-    commit: bool = typer.Option(False, "--commit", "-c", help="Commit configuration changes to devices"),
-    output_dir: Path | None = typer.Option(None, "--output-dir", "-o", help="Override output directory path"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation prompts"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
+def _confirm_operation(is_commit_mode: bool, device_count: int, force: bool) -> bool:  # noqa: FBT001
+    """
+    Display operation mode warning and return True if the operation should proceed.
+
+    Args:
+        is_commit_mode: Whether the operation will commit changes.
+        device_count: Number of devices that will be affected.
+        force: Whether to skip the confirmation prompt.
+
+    Returns:
+        True if the operation should proceed, False if cancelled.
+
+    """
+    if is_commit_mode:
+        console.print("[bold red]⚠ WARNING:[/bold red] This will COMMIT configuration changes to devices!")
+        console.print(f"[yellow]Devices affected:[/yellow] {device_count}")
+        console.print()
+        if not force and not Confirm.ask("[yellow]Do you want to continue?[/yellow]"):
+            console.print("[yellow]Operation cancelled[/yellow]")
+            return False
+    else:
+        console.print("[cyan]INFO: Running in DRY-RUN mode[/cyan] - No changes will be committed")
+        console.print()
+    return True
+
+
+def push_command(  # noqa: C901, PLR0913
+    filters: list[str] | None = typer.Option(None, "--filter", "-f", help="Filter devices (e.g., role=leaf)"),  # noqa: B008
+    dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Explicitly enable dry-run mode"),  # noqa: FBT001
+    commit: bool = typer.Option(False, "--commit", "-c", help="Commit configuration changes to devices"),  # noqa: FBT001
+    output_dir: Path | None = typer.Option(None, "--output-dir", "-o", help="Override output directory path"),  # noqa: B008
+    force: bool = typer.Option(False, "--force", help="Skip confirmation prompts"),  # noqa: FBT001
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),  # noqa: FBT001
 ) -> None:
     """
     Push configurations to network devices (dry-run by default).
@@ -54,7 +80,7 @@ def push_command(
         if dry_run and commit:
             console.print("[red]Error:[/red] Cannot use both --dry-run and --commit flags")
             console.print("[yellow]Tip:[/yellow] Use --commit to apply changes, or omit both for dry-run (default)")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1)  # noqa: TRY301
 
         # Determine operation mode (default to dry-run if neither flag is set)
         is_commit_mode = commit and not dry_run
@@ -75,7 +101,7 @@ def push_command(
                 f"{path_manager.get_output_path()}",
             )
             console.print("[yellow]Tip:[/yellow] Run 'py-netauto render' first to generate configuration files")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1)  # noqa: TRY301
 
         # Initialize Nornir
         if verbose:
@@ -96,22 +122,10 @@ def push_command(
         # Check if any devices match the filter
         if not nr.inventory.hosts:
             console.print("[yellow]Warning:[/yellow] No devices match the specified filter")
-            raise typer.Exit(code=0)
+            raise typer.Exit(code=0)  # noqa: TRY301
 
-        # Show warning about operation type
-        if is_commit_mode:
-            console.print("[bold red]⚠ WARNING:[/bold red] This will COMMIT configuration changes to devices!")
-            console.print(f"[yellow]Devices affected:[/yellow] {len(nr.inventory.hosts)}")
-            console.print()
-
-            # Require confirmation unless --force flag
-            if not force:
-                if not Confirm.ask("[yellow]Do you want to continue?[/yellow]"):
-                    console.print("[yellow]Operation cancelled[/yellow]")
-                    raise typer.Exit(code=0)
-        else:
-            console.print("[cyan]INFO: Running in DRY-RUN mode[/cyan] - No changes will be committed")
-            console.print()
+        if not _confirm_operation(is_commit_mode, len(nr.inventory.hosts), force):
+            raise typer.Exit(code=0)  # noqa: TRY301
 
         # Execute operation based on mode
         if is_commit_mode:
@@ -128,7 +142,7 @@ def push_command(
         raise typer.Exit(code=1) from e
 
 
-def _execute_dry_run(nr, path_manager: PathManager, verbose: bool) -> None:
+def _execute_dry_run(nr, path_manager: PathManager, verbose: bool) -> None:  # noqa: FBT001
     """
     Execute dry-run operation for filtered devices.
 
@@ -157,15 +171,18 @@ def _execute_dry_run(nr, path_manager: PathManager, verbose: bool) -> None:
 
     for hostname, multi_result in result.items():
         if multi_result.failed:
-            # Handle failure
-            error_msg = str(multi_result.exception) if multi_result.exception else "Unknown error"
-            console.print(f"[red]✗ {hostname}:[/red] {error_msg}")
+            # Handle failure - surface per-subtask exceptions for actionable output
+            console.print(f"[red]✗ {hostname}:[/red] Dry-run failed")
+            for task_result in multi_result:
+                if task_result.exception is not None:
+                    console.print(f"  [red][{task_result.name}][/red] {task_result.exception}")
 
+            subtask_errors = [f"[{r.name}] {r.exception}" for r in multi_result if r.exception is not None]
             operation_result.device_results.append(
                 DeviceResult(
                     hostname=hostname,
                     status=OperationStatus.FAILED,
-                    message=error_msg,
+                    message=f"Dry-run failed: {'; '.join(subtask_errors) or 'Unknown error'}",
                 ),
             )
         else:
@@ -206,7 +223,7 @@ def _execute_dry_run(nr, path_manager: PathManager, verbose: bool) -> None:
         raise typer.Exit(code=1)
 
 
-def _execute_commit(nr, path_manager: PathManager, verbose: bool) -> None:
+def _execute_commit(nr, path_manager: PathManager, verbose: bool) -> None:  # noqa: FBT001
     """
     Execute commit operation for filtered devices.
 
@@ -235,15 +252,18 @@ def _execute_commit(nr, path_manager: PathManager, verbose: bool) -> None:
 
     for hostname, multi_result in result.items():
         if multi_result.failed:
-            # Handle failure
-            error_msg = str(multi_result.exception) if multi_result.exception else "Unknown error"
-            console.print(f"[red]✗ {hostname}:[/red] Configuration commit failed - {error_msg}")
+            # Handle failure - surface per-subtask exceptions for actionable output
+            console.print(f"[red]✗ {hostname}:[/red] Configuration commit failed")
+            for task_result in multi_result:
+                if task_result.exception is not None:
+                    console.print(f"  [red][{task_result.name}][/red] {task_result.exception}")
 
+            subtask_errors = [f"[{r.name}] {r.exception}" for r in multi_result if r.exception is not None]
             operation_result.device_results.append(
                 DeviceResult(
                     hostname=hostname,
                     status=OperationStatus.FAILED,
-                    message=f"Commit failed: {error_msg}",
+                    message=f"Commit failed: {'; '.join(subtask_errors) or 'Unknown error'}",
                 ),
             )
         else:
