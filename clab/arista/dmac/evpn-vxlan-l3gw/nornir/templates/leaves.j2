@@ -170,9 +170,22 @@ vlan {{ vlan.vlan_id }}
   name {{ vlan.name }}
 {% endfor %}
 
+! Enabling VTEP
 interface Vxlan1
   vxlan source-interface Loopback1
   vxlan udp-port 4789
   ! Automated VLAN to VNI mapping
   vxlan {{ host.l2_vnis.vlan_to_vni_mappings }}
-  
+
+! MAC VRFs
+router bgp {{ host.asns[host.name] }}
+{% for vrf in host.l2_vnis.mac_vrfs %}
+{% if vrf.type == "vlan-aware-bundle" %}
+  vlan-aware-bundle {{ vrf.name }}
+    rd {{ vrf.rd }}
+    route-target both {{ vrf.route_target }}
+    redistribute learned
+    vlan {{ vrf.vlan_ids }}
+  !
+{% endif %}
+{% endfor %}

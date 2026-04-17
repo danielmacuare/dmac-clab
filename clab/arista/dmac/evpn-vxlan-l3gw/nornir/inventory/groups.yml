@@ -95,3 +95,14 @@ fabric:
               name: VLAN100
         l2_vnis:
             vlan_to_vni_mappings: "vlan 10-1000 vni 10010-11000"
+            mac_vrfs:
+                - name: TENANT-A
+                  type: vlan-aware-bundle
+                  rd: "1.1.1.101:1"
+                  route_target: "1:1"
+                  vlan_ids: "10-49"
+                - name: TENANT-B
+                  type: vlan-aware-bundle
+                  rd: "1.1.1.101:2"
+                  route_target: "2:2"
+                  vlan_ids: "50-69"
